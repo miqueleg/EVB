@@ -1,0 +1,65 @@
+{
+  "config": "examples/kemp_qm_openmm.yaml",
+  "qm_relative_energies_kj_mol": {
+    "RC": 0.0,
+    "TS": 74.23080758985398,
+    "PROD": -154.55225553411307
+  },
+  "mm_reference_energies_kj_mol": {
+    "min1_state1": -31845.753465639362,
+    "min1_state2": -1030.620364762985,
+    "min2_state1": 171305.88583254788,
+    "min2_state2": -31526.7825331012,
+    "ts_state1": 37409.789135001745,
+    "ts_state2": -21824.348453815783
+  },
+  "fit": {
+    "delta_alpha_kj_mol": -53353.839656333774,
+    "h12_kj_mol": 49623.68578350022,
+    "objective_value": 0.3135082659929692,
+    "fitted_reaction_free_energy_kj_mol": -154.59284957055934,
+    "fitted_barrier_kj_mol": 74.6445448382292,
+    "ts_weight2": 0.8750758316725776
+  },
+  "minima_offset_diagnostics": {
+    "delta_alpha_from_state_pure_minima_kj_mol": -473.52318807227493,
+    "ts_shifted_gap_using_minima_offset_kj_mol": 59707.6607768898
+  },
+  "ts_crossing_diagnostics": {
+    "delta_alpha_for_exact_ts_crossing_kj_mol": 59234.137588817524,
+    "best_h12_under_exact_ts_crossing_kj_mol": 500000.0,
+    "best_barrier_under_exact_ts_crossing_kj_mol": 26254.032009959687,
+    "best_reaction_free_energy_under_exact_ts_crossing_kj_mol": 83222.03370201495,
+    "barrier_error_under_exact_ts_crossing_kj_mol": 26179.801202369832,
+    "ts_weight2_under_exact_ts_crossing": 0.5
+  },
+  "evb_profile": {
+    "RC": {
+      "E1_kj_mol": -31845.753465639362,
+      "E2_kj_mol": -1030.620364762985,
+      "Eevb_kj_mol": -94002.32040296841,
+      "weight1": 0.38927126809189494,
+      "weight2": 0.6107287319081051,
+      "relative_to_RC_kj_mol": 0.0,
+      "shifted_gap_kj_mol": 22538.7065554574
+    },
+    "TS": {
+      "E1_kj_mol": 37409.789135001745,
+      "E2_kj_mol": -21824.348453815783,
+      "Eevb_kj_mol": -93927.67585813018,
+      "weight1": 0.12492416832742237,
+      "weight2": 0.8750758316725776,
+      "relative_to_RC_kj_mol": 74.6445448382292,
+      "shifted_gap_kj_mol": 112587.9772451513
+    },
+    "PROD": {
+      "E1_kj_mol": 171305.88583254788,
+      "E2_kj_mol": -31526.7825331012,
+      "Eevb_kj_mol": -94156.91325253897,
+      "weight1": 0.03376400154088188,
+      "weight2": 0.9662359984591181,
+      "relative_to_RC_kj_mol": -154.59284957055934,
+      "shifted_gap_kj_mol": 256186.50802198285
+    }
+  }
+}

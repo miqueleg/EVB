@@ -1,0 +1,4 @@
+  If you want, I can next add a small scripts/run_toy_evb.py example so the env has a one-command GPU smoke test outside pytest.
+Token usage: total=860,083 input=808,818 (+ 4,653,696 cached) output=51,265 (reasoning 9,945)
+To continue this session, run codex resume 019ce21e-66ac-7222-aa55-22d11915591a
+

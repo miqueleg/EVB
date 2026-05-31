@@ -1,0 +1,233 @@
+[
+  {
+    "window_id": "w000",
+    "lambda_value": 0.0,
+    "n_frames": 60,
+    "final_step": 3200,
+    "final_time_ps": 0.16,
+    "proton_transfer_rc_min_nm": -0.24454220936557836,
+    "proton_transfer_rc_max_nm": -0.11838152297831903,
+    "proton_transfer_positive_frames": 0,
+    "reaction_coordinate_ranges_nm": {
+      "proton_transfer_rc": [
+        -0.24454220936557836,
+        -0.11838152297831903
+      ],
+      "ring_opening_rc": [
+        0.14168869047567537,
+        0.15412386518384227
+      ]
+    },
+    "output_dir": "outputs/kemp_qm_openmm_mapping_replicates/rep02/windows/w000"
+  },
+  {
+    "window_id": "w001",
+    "lambda_value": 0.1,
+    "n_frames": 60,
+    "final_step": 3200,
+    "final_time_ps": 0.16,
+    "proton_transfer_rc_min_nm": -0.15533980987167212,
+    "proton_transfer_rc_max_nm": -0.03196001387510683,
+    "proton_transfer_positive_frames": 0,
+    "reaction_coordinate_ranges_nm": {
+      "proton_transfer_rc": [
+        -0.15533980987167212,
+        -0.03196001387510683
+      ],
+      "ring_opening_rc": [
+        0.16134384725621548,
+        0.26372071444081563
+      ]
+    },
+    "output_dir": "outputs/kemp_qm_openmm_mapping_replicates/rep02/windows/w001"
+  },
+  {
+    "window_id": "w002",
+    "lambda_value": 0.2,
+    "n_frames": 60,
+    "final_step": 3200,
+    "final_time_ps": 0.16,
+    "proton_transfer_rc_min_nm": -0.0790401339679354,
+    "proton_transfer_rc_max_nm": -0.03741348301177516,
+    "proton_transfer_positive_frames": 0,
+    "reaction_coordinate_ranges_nm": {
+      "proton_transfer_rc": [
+        -0.0790401339679354,
+        -0.03741348301177516
+      ],
+      "ring_opening_rc": [
+        0.18420070790878196,
+        0.21705765475333705
+      ]
+    },
+    "output_dir": "outputs/kemp_qm_openmm_mapping_replicates/rep02/windows/w002"
+  },
+  {
+    "window_id": "w003",
+    "lambda_value": 0.3,
+    "n_frames": 60,
+    "final_step": 3200,
+    "final_time_ps": 0.16,
+    "proton_transfer_rc_min_nm": -0.052406652754186725,
+    "proton_transfer_rc_max_nm": -0.0436954089986184,
+    "proton_transfer_positive_frames": 0,
+    "reaction_coordinate_ranges_nm": {
+      "proton_transfer_rc": [
+        -0.052406652754186725,
+        -0.0436954089986184
+      ],
+      "ring_opening_rc": [
+        0.19302113398742254,
+        0.22500213840679592
+      ]
+    },
+    "output_dir": "outputs/kemp_qm_openmm_mapping_replicates/rep02/windows/w003"
+  },
+  {
+    "window_id": "w004",
+    "lambda_value": 0.4,
+    "n_frames": 60,
+    "final_step": 3200,
+    "final_time_ps": 0.16,
+    "proton_transfer_rc_min_nm": -0.0472561101120309,
+    "proton_transfer_rc_max_nm": -0.032030549827635146,
+    "proton_transfer_positive_frames": 0,
+    "reaction_coordinate_ranges_nm": {
+      "proton_transfer_rc": [
+        -0.0472561101120309,
+        -0.032030549827635146
+      ],
+      "ring_opening_rc": [
+        0.20602966924722813,
+        0.2160663591984851
+      ]
+    },
+    "output_dir": "outputs/kemp_qm_openmm_mapping_replicates/rep02/windows/w004"
+  },
+  {
+    "window_id": "w005",
+    "lambda_value": 0.5,
+    "n_frames": 60,
+    "final_step": 3200,
+    "final_time_ps": 0.16,
+    "proton_transfer_rc_min_nm": -0.26679767719375,
+    "proton_transfer_rc_max_nm": 0.3020143267263413,
+    "proton_transfer_positive_frames": 28,
+    "reaction_coordinate_ranges_nm": {
+      "proton_transfer_rc": [
+        -0.26679767719375,
+        0.3020143267263413
+      ],
+      "ring_opening_rc": [
+        0.17285653012759386,
+        0.38410757909672927
+      ]
+    },
+    "output_dir": "outputs/kemp_qm_openmm_mapping_replicates/rep02/windows/w005"
+  },
+  {
+    "window_id": "w006",
+    "lambda_value": 0.6,
+    "n_frames": 60,
+    "final_step": 3200,
+    "final_time_ps": 0.16,
+    "proton_transfer_rc_min_nm": -0.16960022724038856,
+    "proton_transfer_rc_max_nm": 0.2916038586470144,
+    "proton_transfer_positive_frames": 31,
+    "reaction_coordinate_ranges_nm": {
+      "proton_transfer_rc": [
+        -0.16960022724038856,
+        0.2916038586470144
+      ],
+      "ring_opening_rc": [
+        0.17778820882383248,
+        0.33399418662147545
+      ]
+    },
+    "output_dir": "outputs/kemp_qm_openmm_mapping_replicates/rep02/windows/w006"
+  },
+  {
+    "window_id": "w007",
+    "lambda_value": 0.7,
+    "n_frames": 60,
+    "final_step": 3200,
+    "final_time_ps": 0.16,
+    "proton_transfer_rc_min_nm": -0.06735060186937283,
+    "proton_transfer_rc_max_nm": 0.1267911627430875,
+    "proton_transfer_positive_frames": 39,
+    "reaction_coordinate_ranges_nm": {
+      "proton_transfer_rc": [
+        -0.06735060186937283,
+        0.1267911627430875
+      ],
+      "ring_opening_rc": [
+        0.18662749589516348,
+        0.3262078546184965
+      ]
+    },
+    "output_dir": "outputs/kemp_qm_openmm_mapping_replicates/rep02/windows/w007"
+  },
+  {
+    "window_id": "w008",
+    "lambda_value": 0.8,
+    "n_frames": 60,
+    "final_step": 3200,
+    "final_time_ps": 0.16,
+    "proton_transfer_rc_min_nm": -0.04614420765652247,
+    "proton_transfer_rc_max_nm": 0.056742167428760176,
+    "proton_transfer_positive_frames": 37,
+    "reaction_coordinate_ranges_nm": {
+      "proton_transfer_rc": [
+        -0.04614420765652247,
+        0.056742167428760176
+      ],
+      "ring_opening_rc": [
+        0.21954807879473434,
+        0.27889251001134574
+      ]
+    },
+    "output_dir": "outputs/kemp_qm_openmm_mapping_replicates/rep02/windows/w008"
+  },
+  {
+    "window_id": "w009",
+    "lambda_value": 0.9,
+    "n_frames": 60,
+    "final_step": 3200,
+    "final_time_ps": 0.16,
+    "proton_transfer_rc_min_nm": -0.013300950613514856,
+    "proton_transfer_rc_max_nm": 0.06547755557166551,
+    "proton_transfer_positive_frames": 53,
+    "reaction_coordinate_ranges_nm": {
+      "proton_transfer_rc": [
+        -0.013300950613514856,
+        0.06547755557166551
+      ],
+      "ring_opening_rc": [
+        0.23756693315362779,
+        0.3021083623272354
+      ]
+    },
+    "output_dir": "outputs/kemp_qm_openmm_mapping_replicates/rep02/windows/w009"
+  },
+  {
+    "window_id": "w010",
+    "lambda_value": 1.0,
+    "n_frames": 60,
+    "final_step": 3200,
+    "final_time_ps": 0.16,
+    "proton_transfer_rc_min_nm": 0.05341388092178598,
+    "proton_transfer_rc_max_nm": 0.3454995210494538,
+    "proton_transfer_positive_frames": 60,
+    "reaction_coordinate_ranges_nm": {
+      "proton_transfer_rc": [
+        0.05341388092178598,
+        0.3454995210494538
+      ],
+      "ring_opening_rc": [
+        0.30028885250030324,
+        0.38663960605215714
+      ]
+    },
+    "output_dir": "outputs/kemp_qm_openmm_mapping_replicates/rep02/windows/w010"
+  }
+]

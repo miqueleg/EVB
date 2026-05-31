@@ -1,0 +1,7 @@
+numpy>=1.24
+
+[openmm]
+openmm>=8.1
+
+[test]
+pytest>=8.0

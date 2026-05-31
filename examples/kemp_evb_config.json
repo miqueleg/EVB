@@ -1,0 +1,45 @@
+{
+  "state1": {
+    "prmtop": "data/state1.prmtop",
+    "inpcrd": "data/state1.inpcrd"
+  },
+  "state2": {
+    "prmtop": "data/state2.prmtop",
+    "inpcrd": "data/state2.inpcrd"
+  },
+  "calibration": {
+    "e_qmmm_min1": 0.0,
+    "e_qmmm_min2": -12.5,
+    "e_qmmm_ts": 58.0,
+    "coordinates": {
+      "min1": "data/min1.inpcrd",
+      "min2": "data/min2.inpcrd",
+      "ts": "data/ts.inpcrd"
+    }
+  },
+  "evb_parameters": {
+    "delta_alpha": null,
+    "h12": null
+  },
+  "cv": {
+    "donor": 1234,
+    "proton": 1235,
+    "acceptor": 1236
+  },
+  "simulation": {
+    "integrator": "LangevinMiddle",
+    "timestep_fs": 1.0,
+    "temperature_k": 300.0,
+    "friction_per_ps": 1.0,
+    "steps": 100,
+    "report_interval": 10,
+    "minimize_steps": 200,
+    "minimize_tolerance": 10.0,
+    "platform": null,
+    "nonbonded_method": "PME",
+    "constraints": "HBonds",
+    "seed": 2026
+  },
+  "output_dir": "outputs",
+  "start_state": "state1"
+}

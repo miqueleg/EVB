@@ -1,0 +1,22 @@
+{
+  "window_id": "p003",
+  "rc_center_nm": 0.04,
+  "force_constant_kj_mol_nm2": 25000.0,
+  "n_frames": 40,
+  "final_step": 5000,
+  "final_time_ps": 0.5,
+  "proton_transfer_rc_min_nm": 0.07370027434735783,
+  "proton_transfer_rc_max_nm": 0.09469374935825275,
+  "proton_transfer_positive_frames": 40,
+  "reaction_coordinate_ranges_nm": {
+    "proton_transfer_rc": [
+      0.07370027434735783,
+      0.09469374935825275
+    ],
+    "ring_opening_rc": [
+      0.33707933302810295,
+      0.3682639844627204
+    ]
+  },
+  "output_dir": "outputs/kemp_qm_ts_seeded_pt_bidirectional/branches/reverse/windows/p003"
+}

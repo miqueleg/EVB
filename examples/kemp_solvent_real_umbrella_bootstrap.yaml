@@ -1,0 +1,72 @@
+project:
+  name: kemp-solvent-real-umbrella-bootstrap
+  output_dir: outputs/kemp_solvent_real_umbrella_bootstrap
+reaction:
+  metadata:
+    name: kemp_substrate_formicacid_water_real_umbrella_bootstrap
+    phase: solution
+    temperature_k: 300.0
+    pressure_bar: 1.0
+    notes: Conservative gap-umbrella EVB bootstrap run on the shared-box RC/PROD solvent system.
+  atoms:
+    donor: 6
+    proton: 15
+    acceptor: 19
+states:
+  state1:
+    topology: outputs/prepared_systems/kemp_solvent_boxsynced/RC.prmtop
+    coordinates: outputs/prepared_systems/kemp_solvent_boxsynced/RC.pdb
+    format: amber
+  state2:
+    topology: outputs/prepared_systems/kemp_solvent_boxsynced/PROD.prmtop
+    coordinates: outputs/prepared_systems/kemp_solvent_boxsynced/PROD.pdb
+    format: amber
+evb:
+  coupling_model:
+    model: constant
+    parameters:
+      delta_alpha_kj_mol: 0.0
+      h12_kj_mol: 20.0
+sampling:
+  mode: gap_umbrella
+  integrator:
+    name: LangevinMiddle
+    timestep_fs: 0.1
+    friction_per_ps: 1.0
+    seed: 2026
+  md:
+    equilibration_steps: 50
+    production_steps: 200
+    report_stride: 10
+    save_stride: null
+    platform: CPU
+    temperature_k: 300.0
+    nonbonded_method: PME
+    constraints: None
+    minimize_steps: 1000
+    minimize_tolerance: 10.0
+  windows:
+    gap_umbrella:
+      centers_kj_mol: [-29500.0, -28500.0, -27500.0, -26500.0, -25500.0, -24500.0, -23500.0, -22500.0]
+      force_constant_kj_mol2: 1.0e-7
+observables:
+  gap:
+    shifted: true
+  distances:
+    - name: donor_h
+      atom1: 6
+      atom2: 15
+    - name: h_acceptor
+      atom1: 15
+      atom2: 19
+analysis:
+  histogram:
+    bin_min_kj_mol: -50000.0
+    bin_max_kj_mol: 50000.0
+    n_bins: 200
+  pmf:
+    temperature_k: 300.0
+    zero_mode: reactant_min
+  barrier:
+    reactant_region: [-50000.0, -24000.0]
+    product_region: [-22000.0, 50000.0]

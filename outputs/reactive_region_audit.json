@@ -1,0 +1,838 @@
+{
+  "state1": {
+    "path": "prep/kemp_qm_prevsolvent/03_solvated_rc/RC_solvated_initial.prmtop",
+    "atoms": [
+      {
+        "index": 0,
+        "residue": "SBR",
+        "name": "N1",
+        "atomic_number": 7,
+        "mass_amu": 14.01,
+        "amber_type": "no",
+        "type_index": 1,
+        "charge_e": 0.3172
+      },
+      {
+        "index": 1,
+        "residue": "SBR",
+        "name": "N2",
+        "atomic_number": 7,
+        "mass_amu": 14.01,
+        "amber_type": "nc",
+        "type_index": 2,
+        "charge_e": -0.37420000000000003
+      },
+      {
+        "index": 2,
+        "residue": "SBR",
+        "name": "C1",
+        "atomic_number": 6,
+        "mass_amu": 12.01,
+        "amber_type": "ca",
+        "type_index": 3,
+        "charge_e": -0.2032
+      },
+      {
+        "index": 3,
+        "residue": "SBR",
+        "name": "C2",
+        "atomic_number": 6,
+        "mass_amu": 12.01,
+        "amber_type": "ca",
+        "type_index": 3,
+        "charge_e": -0.04
+      },
+      {
+        "index": 4,
+        "residue": "SBR",
+        "name": "C3",
+        "atomic_number": 6,
+        "mass_amu": 12.01,
+        "amber_type": "ca",
+        "type_index": 3,
+        "charge_e": -0.125
+      },
+      {
+        "index": 5,
+        "residue": "SBR",
+        "name": "C4",
+        "atomic_number": 6,
+        "mass_amu": 12.01,
+        "amber_type": "ca",
+        "type_index": 3,
+        "charge_e": 0.08209999999999999
+      },
+      {
+        "index": 6,
+        "residue": "SBR",
+        "name": "C5",
+        "atomic_number": 6,
+        "mass_amu": 12.01,
+        "amber_type": "cd",
+        "type_index": 3,
+        "charge_e": 0.37979999999999997
+      },
+      {
+        "index": 7,
+        "residue": "SBR",
+        "name": "C6",
+        "atomic_number": 6,
+        "mass_amu": 12.01,
+        "amber_type": "ca",
+        "type_index": 3,
+        "charge_e": -0.24189999999999998
+      },
+      {
+        "index": 8,
+        "residue": "SBR",
+        "name": "C7",
+        "atomic_number": 6,
+        "mass_amu": 12.01,
+        "amber_type": "ca",
+        "type_index": 3,
+        "charge_e": 0.008
+      },
+      {
+        "index": 9,
+        "residue": "SBR",
+        "name": "O1",
+        "atomic_number": 8,
+        "mass_amu": 16.0,
+        "amber_type": "o",
+        "type_index": 4,
+        "charge_e": -0.2045
+      },
+      {
+        "index": 10,
+        "residue": "SBR",
+        "name": "O2",
+        "atomic_number": 8,
+        "mass_amu": 16.0,
+        "amber_type": "o",
+        "type_index": 4,
+        "charge_e": -0.2045
+      },
+      {
+        "index": 11,
+        "residue": "SBR",
+        "name": "O3",
+        "atomic_number": 8,
+        "mass_amu": 16.0,
+        "amber_type": "os",
+        "type_index": 5,
+        "charge_e": -0.0015999999999999999
+      },
+      {
+        "index": 12,
+        "residue": "SBR",
+        "name": "H1",
+        "atomic_number": 1,
+        "mass_amu": 1.008,
+        "amber_type": "ha",
+        "type_index": 6,
+        "charge_e": 0.183
+      },
+      {
+        "index": 13,
+        "residue": "SBR",
+        "name": "H2",
+        "atomic_number": 1,
+        "mass_amu": 1.008,
+        "amber_type": "ha",
+        "type_index": 6,
+        "charge_e": 0.18
+      },
+      {
+        "index": 14,
+        "residue": "SBR",
+        "name": "H3",
+        "atomic_number": 1,
+        "mass_amu": 1.008,
+        "amber_type": "ha",
+        "type_index": 6,
+        "charge_e": 0.174
+      },
+      {
+        "index": 15,
+        "residue": "SBR",
+        "name": "H4",
+        "atomic_number": 1,
+        "mass_amu": 1.008,
+        "amber_type": "h4",
+        "type_index": 7,
+        "charge_e": 0.07379999999999999
+      },
+      {
+        "index": 16,
+        "residue": "BAR",
+        "name": "C8",
+        "atomic_number": 6,
+        "mass_amu": 12.01,
+        "amber_type": "c",
+        "type_index": 3,
+        "charge_e": 0.9016000010975562
+      },
+      {
+        "index": 17,
+        "residue": "BAR",
+        "name": "C9",
+        "atomic_number": 6,
+        "mass_amu": 12.01,
+        "amber_type": "c3",
+        "type_index": 8,
+        "charge_e": -0.2001
+      },
+      {
+        "index": 18,
+        "residue": "BAR",
+        "name": "O4",
+        "atomic_number": 8,
+        "mass_amu": 16.0,
+        "amber_type": "o",
+        "type_index": 4,
+        "charge_e": -0.8613000005487781
+      },
+      {
+        "index": 19,
+        "residue": "BAR",
+        "name": "O5",
+        "atomic_number": 8,
+        "mass_amu": 16.0,
+        "amber_type": "o",
+        "type_index": 4,
+        "charge_e": -0.8613000005487781
+      },
+      {
+        "index": 20,
+        "residue": "BAR",
+        "name": "H5",
+        "atomic_number": 1,
+        "mass_amu": 1.008,
+        "amber_type": "hc",
+        "type_index": 9,
+        "charge_e": 0.006699999999999999
+      },
+      {
+        "index": 21,
+        "residue": "BAR",
+        "name": "H6",
+        "atomic_number": 1,
+        "mass_amu": 1.008,
+        "amber_type": "hc",
+        "type_index": 9,
+        "charge_e": 0.006699999999999999
+      },
+      {
+        "index": 22,
+        "residue": "BAR",
+        "name": "H7",
+        "atomic_number": 1,
+        "mass_amu": 1.008,
+        "amber_type": "hc",
+        "type_index": 9,
+        "charge_e": 0.006699999999999999
+      }
+    ],
+    "bonds": [
+      {
+        "atom1": 0,
+        "atom2": 2,
+        "name1": "N1",
+        "name2": "C1",
+        "equilibrium_angstrom": 1.4696,
+        "force_constant_kcal_mol_a2": 250.2
+      },
+      {
+        "atom1": 0,
+        "atom2": 9,
+        "name1": "N1",
+        "name2": "O1",
+        "equilibrium_angstrom": 1.2311,
+        "force_constant_kcal_mol_a2": 361.74
+      },
+      {
+        "atom1": 0,
+        "atom2": 10,
+        "name1": "N1",
+        "name2": "O2",
+        "equilibrium_angstrom": 1.2311,
+        "force_constant_kcal_mol_a2": 361.74
+      },
+      {
+        "atom1": 1,
+        "atom2": 6,
+        "name1": "N2",
+        "name2": "C5",
+        "equilibrium_angstrom": 1.3171,
+        "force_constant_kcal_mol_a2": 417.79
+      },
+      {
+        "atom1": 1,
+        "atom2": 11,
+        "name1": "N2",
+        "name2": "O3",
+        "equilibrium_angstrom": 1.4058,
+        "force_constant_kcal_mol_a2": 194.4
+      },
+      {
+        "atom1": 2,
+        "atom2": 3,
+        "name1": "C1",
+        "name2": "C2",
+        "equilibrium_angstrom": 1.3986,
+        "force_constant_kcal_mol_a2": 354.25
+      },
+      {
+        "atom1": 2,
+        "atom2": 8,
+        "name1": "C1",
+        "name2": "C7",
+        "equilibrium_angstrom": 1.3986,
+        "force_constant_kcal_mol_a2": 354.25
+      },
+      {
+        "atom1": 3,
+        "atom2": 4,
+        "name1": "C2",
+        "name2": "C3",
+        "equilibrium_angstrom": 1.3986,
+        "force_constant_kcal_mol_a2": 354.25
+      },
+      {
+        "atom1": 3,
+        "atom2": 13,
+        "name1": "C2",
+        "name2": "H2",
+        "equilibrium_angstrom": 1.086,
+        "force_constant_kcal_mol_a2": 360.69
+      },
+      {
+        "atom1": 4,
+        "atom2": 5,
+        "name1": "C3",
+        "name2": "C4",
+        "equilibrium_angstrom": 1.3986,
+        "force_constant_kcal_mol_a2": 354.25
+      },
+      {
+        "atom1": 4,
+        "atom2": 14,
+        "name1": "C3",
+        "name2": "H3",
+        "equilibrium_angstrom": 1.086,
+        "force_constant_kcal_mol_a2": 360.69
+      },
+      {
+        "atom1": 5,
+        "atom2": 7,
+        "name1": "C4",
+        "name2": "C6",
+        "equilibrium_angstrom": 1.3986,
+        "force_constant_kcal_mol_a2": 354.25
+      },
+      {
+        "atom1": 5,
+        "atom2": 11,
+        "name1": "C4",
+        "name2": "O3",
+        "equilibrium_angstrom": 1.3688,
+        "force_constant_kcal_mol_a2": 343.34
+      },
+      {
+        "atom1": 6,
+        "atom2": 7,
+        "name1": "C5",
+        "name2": "C6",
+        "equilibrium_angstrom": 1.461,
+        "force_constant_kcal_mol_a2": 288.79
+      },
+      {
+        "atom1": 6,
+        "atom2": 15,
+        "name1": "C5",
+        "name2": "H4",
+        "equilibrium_angstrom": 1.0818,
+        "force_constant_kcal_mol_a2": 367.29
+      },
+      {
+        "atom1": 7,
+        "atom2": 8,
+        "name1": "C6",
+        "name2": "C7",
+        "equilibrium_angstrom": 1.3986,
+        "force_constant_kcal_mol_a2": 354.25
+      },
+      {
+        "atom1": 8,
+        "atom2": 12,
+        "name1": "C7",
+        "name2": "H1",
+        "equilibrium_angstrom": 1.086,
+        "force_constant_kcal_mol_a2": 360.69
+      },
+      {
+        "atom1": 16,
+        "atom2": 17,
+        "name1": "C8",
+        "name2": "C9",
+        "equilibrium_angstrom": 1.527,
+        "force_constant_kcal_mol_a2": 234.85
+      },
+      {
+        "atom1": 16,
+        "atom2": 18,
+        "name1": "C8",
+        "name2": "O4",
+        "equilibrium_angstrom": 1.219,
+        "force_constant_kcal_mol_a2": 590.6
+      },
+      {
+        "atom1": 16,
+        "atom2": 19,
+        "name1": "C8",
+        "name2": "O5",
+        "equilibrium_angstrom": 1.219,
+        "force_constant_kcal_mol_a2": 590.6
+      },
+      {
+        "atom1": 17,
+        "atom2": 20,
+        "name1": "C9",
+        "name2": "H5",
+        "equilibrium_angstrom": 1.0962,
+        "force_constant_kcal_mol_a2": 345.25
+      },
+      {
+        "atom1": 17,
+        "atom2": 21,
+        "name1": "C9",
+        "name2": "H6",
+        "equilibrium_angstrom": 1.0962,
+        "force_constant_kcal_mol_a2": 345.25
+      },
+      {
+        "atom1": 17,
+        "atom2": 22,
+        "name1": "C9",
+        "name2": "H7",
+        "equilibrium_angstrom": 1.0962,
+        "force_constant_kcal_mol_a2": 345.25
+      }
+    ],
+    "total_charge_e": -0.998
+  },
+  "state2": {
+    "path": "prep/kemp_qm_prevsolvent/03_solvated_prod/PROD_solvated_initial.prmtop",
+    "atoms": [
+      {
+        "index": 0,
+        "residue": "SDP",
+        "name": "N1",
+        "atomic_number": 7,
+        "mass_amu": 14.01,
+        "amber_type": "no",
+        "type_index": 1,
+        "charge_e": 0.2393
+      },
+      {
+        "index": 1,
+        "residue": "SDP",
+        "name": "N2",
+        "atomic_number": 7,
+        "mass_amu": 14.01,
+        "amber_type": "n1",
+        "type_index": 2,
+        "charge_e": -0.47779999999999995
+      },
+      {
+        "index": 2,
+        "residue": "SDP",
+        "name": "C1",
+        "atomic_number": 6,
+        "mass_amu": 12.01,
+        "amber_type": "cc",
+        "type_index": 3,
+        "charge_e": -0.09709999999999999
+      },
+      {
+        "index": 3,
+        "residue": "SDP",
+        "name": "C2",
+        "atomic_number": 6,
+        "mass_amu": 12.01,
+        "amber_type": "cc",
+        "type_index": 3,
+        "charge_e": -0.09359999999999999
+      },
+      {
+        "index": 4,
+        "residue": "SDP",
+        "name": "C3",
+        "atomic_number": 6,
+        "mass_amu": 12.01,
+        "amber_type": "cd",
+        "type_index": 3,
+        "charge_e": -0.3202
+      },
+      {
+        "index": 5,
+        "residue": "SDP",
+        "name": "C4",
+        "atomic_number": 6,
+        "mass_amu": 12.01,
+        "amber_type": "c",
+        "type_index": 3,
+        "charge_e": 0.5905000027438907
+      },
+      {
+        "index": 6,
+        "residue": "SDP",
+        "name": "C5",
+        "atomic_number": 6,
+        "mass_amu": 12.01,
+        "amber_type": "ch",
+        "type_index": 4,
+        "charge_e": 0.2665
+      },
+      {
+        "index": 7,
+        "residue": "SDP",
+        "name": "C6",
+        "atomic_number": 6,
+        "mass_amu": 12.01,
+        "amber_type": "cd",
+        "type_index": 3,
+        "charge_e": -0.22789999999999996
+      },
+      {
+        "index": 8,
+        "residue": "SDP",
+        "name": "C7",
+        "atomic_number": 6,
+        "mass_amu": 12.01,
+        "amber_type": "cc",
+        "type_index": 3,
+        "charge_e": -0.0326
+      },
+      {
+        "index": 9,
+        "residue": "SDP",
+        "name": "O1",
+        "atomic_number": 8,
+        "mass_amu": 16.0,
+        "amber_type": "o",
+        "type_index": 5,
+        "charge_e": -0.291
+      },
+      {
+        "index": 10,
+        "residue": "SDP",
+        "name": "O2",
+        "atomic_number": 8,
+        "mass_amu": 16.0,
+        "amber_type": "o",
+        "type_index": 5,
+        "charge_e": -0.291
+      },
+      {
+        "index": 11,
+        "residue": "SDP",
+        "name": "O3",
+        "atomic_number": 8,
+        "mass_amu": 16.0,
+        "amber_type": "o",
+        "type_index": 5,
+        "charge_e": -0.6560999983536655
+      },
+      {
+        "index": 12,
+        "residue": "SDP",
+        "name": "H1",
+        "atomic_number": 1,
+        "mass_amu": 1.008,
+        "amber_type": "ha",
+        "type_index": 6,
+        "charge_e": 0.13599999999999998
+      },
+      {
+        "index": 13,
+        "residue": "SDP",
+        "name": "H2",
+        "atomic_number": 1,
+        "mass_amu": 1.008,
+        "amber_type": "ha",
+        "type_index": 6,
+        "charge_e": 0.129
+      },
+      {
+        "index": 14,
+        "residue": "SDP",
+        "name": "H3",
+        "atomic_number": 1,
+        "mass_amu": 1.008,
+        "amber_type": "ha",
+        "type_index": 6,
+        "charge_e": 0.125
+      },
+      {
+        "index": 15,
+        "residue": "ACP",
+        "name": "H4",
+        "atomic_number": 1,
+        "mass_amu": 1.008,
+        "amber_type": "ho",
+        "type_index": 7,
+        "charge_e": 0.44399999999999995
+      },
+      {
+        "index": 16,
+        "residue": "ACP",
+        "name": "C8",
+        "atomic_number": 6,
+        "mass_amu": 12.01,
+        "amber_type": "c",
+        "type_index": 3,
+        "charge_e": 0.6350999983536656
+      },
+      {
+        "index": 17,
+        "residue": "ACP",
+        "name": "C9",
+        "atomic_number": 6,
+        "mass_amu": 12.01,
+        "amber_type": "c3",
+        "type_index": 8,
+        "charge_e": -0.1501
+      },
+      {
+        "index": 18,
+        "residue": "ACP",
+        "name": "O4",
+        "atomic_number": 8,
+        "mass_amu": 16.0,
+        "amber_type": "o",
+        "type_index": 5,
+        "charge_e": -0.552
+      },
+      {
+        "index": 19,
+        "residue": "ACP",
+        "name": "O5",
+        "atomic_number": 8,
+        "mass_amu": 16.0,
+        "amber_type": "oh",
+        "type_index": 9,
+        "charge_e": -0.6110999983536655
+      },
+      {
+        "index": 20,
+        "residue": "ACP",
+        "name": "H5",
+        "atomic_number": 1,
+        "mass_amu": 1.008,
+        "amber_type": "hc",
+        "type_index": 10,
+        "charge_e": 0.07769999999999999
+      },
+      {
+        "index": 21,
+        "residue": "ACP",
+        "name": "H6",
+        "atomic_number": 1,
+        "mass_amu": 1.008,
+        "amber_type": "hc",
+        "type_index": 10,
+        "charge_e": 0.07769999999999999
+      },
+      {
+        "index": 22,
+        "residue": "ACP",
+        "name": "H7",
+        "atomic_number": 1,
+        "mass_amu": 1.008,
+        "amber_type": "hc",
+        "type_index": 10,
+        "charge_e": 0.07769999999999999
+      }
+    ],
+    "bonds": [
+      {
+        "atom1": 0,
+        "atom2": 2,
+        "name1": "N1",
+        "name2": "C1",
+        "equilibrium_angstrom": 1.4298,
+        "force_constant_kcal_mol_a2": 284.5
+      },
+      {
+        "atom1": 0,
+        "atom2": 9,
+        "name1": "N1",
+        "name2": "O1",
+        "equilibrium_angstrom": 1.2311,
+        "force_constant_kcal_mol_a2": 361.74
+      },
+      {
+        "atom1": 0,
+        "atom2": 10,
+        "name1": "N1",
+        "name2": "O2",
+        "equilibrium_angstrom": 1.2311,
+        "force_constant_kcal_mol_a2": 361.74
+      },
+      {
+        "atom1": 1,
+        "atom2": 6,
+        "name1": "N2",
+        "name2": "C5",
+        "equilibrium_angstrom": 1.1647,
+        "force_constant_kcal_mol_a2": 742.83
+      },
+      {
+        "atom1": 2,
+        "atom2": 3,
+        "name1": "C1",
+        "name2": "C2",
+        "equilibrium_angstrom": 1.4274,
+        "force_constant_kcal_mol_a2": 322.02
+      },
+      {
+        "atom1": 2,
+        "atom2": 8,
+        "name1": "C1",
+        "name2": "C7",
+        "equilibrium_angstrom": 1.4274,
+        "force_constant_kcal_mol_a2": 322.02
+      },
+      {
+        "atom1": 3,
+        "atom2": 4,
+        "name1": "C2",
+        "name2": "C3",
+        "equilibrium_angstrom": 1.373,
+        "force_constant_kcal_mol_a2": 386.24
+      },
+      {
+        "atom1": 3,
+        "atom2": 13,
+        "name1": "C2",
+        "name2": "H2",
+        "equilibrium_angstrom": 1.0838,
+        "force_constant_kcal_mol_a2": 364.12
+      },
+      {
+        "atom1": 4,
+        "atom2": 5,
+        "name1": "C3",
+        "name2": "C4",
+        "equilibrium_angstrom": 1.4728,
+        "force_constant_kcal_mol_a2": 278.12
+      },
+      {
+        "atom1": 4,
+        "atom2": 14,
+        "name1": "C3",
+        "name2": "H3",
+        "equilibrium_angstrom": 1.0835,
+        "force_constant_kcal_mol_a2": 364.6
+      },
+      {
+        "atom1": 5,
+        "atom2": 7,
+        "name1": "C4",
+        "name2": "C6",
+        "equilibrium_angstrom": 1.4728,
+        "force_constant_kcal_mol_a2": 278.12
+      },
+      {
+        "atom1": 5,
+        "atom2": 11,
+        "name1": "C4",
+        "name2": "O3",
+        "equilibrium_angstrom": 1.219,
+        "force_constant_kcal_mol_a2": 590.6
+      },
+      {
+        "atom1": 6,
+        "atom2": 7,
+        "name1": "C5",
+        "name2": "C6",
+        "equilibrium_angstrom": 1.4176,
+        "force_constant_kcal_mol_a2": 332.57
+      },
+      {
+        "atom1": 7,
+        "atom2": 8,
+        "name1": "C6",
+        "name2": "C7",
+        "equilibrium_angstrom": 1.373,
+        "force_constant_kcal_mol_a2": 386.24
+      },
+      {
+        "atom1": 8,
+        "atom2": 12,
+        "name1": "C7",
+        "name2": "H1",
+        "equilibrium_angstrom": 1.0838,
+        "force_constant_kcal_mol_a2": 364.12
+      },
+      {
+        "atom1": 15,
+        "atom2": 19,
+        "name1": "H4",
+        "name2": "O5",
+        "equilibrium_angstrom": 0.9725,
+        "force_constant_kcal_mol_a2": 535.51
+      },
+      {
+        "atom1": 16,
+        "atom2": 17,
+        "name1": "C8",
+        "name2": "C9",
+        "equilibrium_angstrom": 1.527,
+        "force_constant_kcal_mol_a2": 234.85
+      },
+      {
+        "atom1": 16,
+        "atom2": 18,
+        "name1": "C8",
+        "name2": "O4",
+        "equilibrium_angstrom": 1.219,
+        "force_constant_kcal_mol_a2": 590.6
+      },
+      {
+        "atom1": 16,
+        "atom2": 19,
+        "name1": "C8",
+        "name2": "O5",
+        "equilibrium_angstrom": 1.3556,
+        "force_constant_kcal_mol_a2": 359.27
+      },
+      {
+        "atom1": 17,
+        "atom2": 20,
+        "name1": "C9",
+        "name2": "H5",
+        "equilibrium_angstrom": 1.0962,
+        "force_constant_kcal_mol_a2": 345.25
+      },
+      {
+        "atom1": 17,
+        "atom2": 21,
+        "name1": "C9",
+        "name2": "H6",
+        "equilibrium_angstrom": 1.0962,
+        "force_constant_kcal_mol_a2": 345.25
+      },
+      {
+        "atom1": 17,
+        "atom2": 22,
+        "name1": "C9",
+        "name2": "H7",
+        "equilibrium_angstrom": 1.0962,
+        "force_constant_kcal_mol_a2": 345.25
+      }
+    ],
+    "total_charge_e": -1.0019999956097747
+  }
+}

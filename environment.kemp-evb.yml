@@ -1,0 +1,12 @@
+name: kemp-evb
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - openmm
+  - cuda-version=13.0
+  - numpy
+  - pytest
+  - pip
+  - pip:
+      - -e .

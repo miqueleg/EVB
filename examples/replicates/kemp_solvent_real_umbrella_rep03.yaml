@@ -1,0 +1,72 @@
+project:
+  name: kemp-solvent-real-umbrella-rep03
+  output_dir: outputs/kemp_solvent_real_umbrella_replicates/rep03
+reaction:
+  metadata:
+    name: kemp_substrate_formicacid_water_real_umbrella_rep03
+    phase: solution
+    temperature_k: 300.0
+    pressure_bar: 1.0
+    notes: CUDA replicate 3 with longer per-window sampling and shifted umbrella windows.
+  atoms:
+    donor: 6
+    proton: 15
+    acceptor: 19
+states:
+  state1:
+    topology: outputs/prepared_systems/kemp_solvent_boxsynced/RC.prmtop
+    coordinates: outputs/prepared_systems/kemp_solvent_boxsynced/RC.pdb
+    format: amber
+  state2:
+    topology: outputs/prepared_systems/kemp_solvent_boxsynced/PROD.prmtop
+    coordinates: outputs/prepared_systems/kemp_solvent_boxsynced/PROD.pdb
+    format: amber
+evb:
+  coupling_model:
+    model: constant
+    parameters:
+      delta_alpha_kj_mol: 0.0
+      h12_kj_mol: 20.0
+sampling:
+  mode: gap_umbrella
+  integrator:
+    name: LangevinMiddle
+    timestep_fs: 0.1
+    friction_per_ps: 1.0
+    seed: 3103
+  md:
+    equilibration_steps: 2000
+    production_steps: 20000
+    report_stride: 200
+    save_stride: null
+    platform: CUDA
+    temperature_k: 300.0
+    nonbonded_method: PME
+    constraints: None
+    minimize_steps: 1000
+    minimize_tolerance: 10.0
+  windows:
+    gap_umbrella:
+      centers_kj_mol: [-32000, -30750, -29500, -28250, -27000, -25750, -24500, -23250, -22000, -20750, -19500, -18250, -17000]
+      force_constant_kj_mol2: 1.0e-7
+observables:
+  gap:
+    shifted: true
+  distances:
+    - name: donor_h
+      atom1: 6
+      atom2: 15
+    - name: h_acceptor
+      atom1: 15
+      atom2: 19
+analysis:
+  histogram:
+    bin_min_kj_mol: -50000.0
+    bin_max_kj_mol: 50000.0
+    n_bins: 300
+  pmf:
+    temperature_k: 300.0
+    zero_mode: reactant_min
+  barrier:
+    reactant_region: [-36000.0, -28500.0]
+    product_region: [-22000.0, -16000.0]

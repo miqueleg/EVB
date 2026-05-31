@@ -1,0 +1,21 @@
+{
+  "window_id": "w004",
+  "lambda_value": 0.4,
+  "n_frames": 20,
+  "final_step": 1100,
+  "final_time_ps": 0.055,
+  "proton_transfer_rc_min_nm": -0.06391449743184009,
+  "proton_transfer_rc_max_nm": -0.016914852285449006,
+  "proton_transfer_positive_frames": 0,
+  "reaction_coordinate_ranges_nm": {
+    "proton_transfer_rc": [
+      -0.06391449743184009,
+      -0.016914852285449006
+    ],
+    "ring_opening_rc": [
+      0.1840548527107072,
+      0.2603141266838776
+    ]
+  },
+  "output_dir": "outputs/kemp_qm_openmm_mapping_calibrated_cuda/windows/w004"
+}

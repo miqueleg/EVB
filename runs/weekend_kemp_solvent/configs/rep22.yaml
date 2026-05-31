@@ -1,0 +1,74 @@
+project:
+  name: kemp-solvent-weekend-rep22
+  output_dir: outputs/kemp_solvent_weekend/rep22
+reaction:
+  metadata:
+    name: kemp_solvent_weekend_rep22
+    phase: solution
+    temperature_k: 300.0
+    pressure_bar: 1.0
+    notes: >
+      Long CUDA EVB umbrella replicate prepared to match 30 replicas x 51 EVB windows x 200 ps/window
+      for the current shared-box Kemp solvent system.
+  atoms:
+    donor: 17
+    proton: 22
+    acceptor: 19
+states:
+  state1:
+    topology: outputs/prepared_systems/kemp_solvent_boxsynced/RC.prmtop
+    coordinates: outputs/prepared_systems/kemp_solvent_boxsynced/RC.pdb
+    format: amber
+  state2:
+    topology: outputs/prepared_systems/kemp_solvent_boxsynced/PROD.prmtop
+    coordinates: outputs/prepared_systems/kemp_solvent_boxsynced/PROD.pdb
+    format: amber
+evb:
+  coupling_model:
+    model: constant
+    parameters:
+      delta_alpha_kj_mol: 0.0
+      h12_kj_mol: 20.0
+sampling:
+  mode: gap_umbrella
+  integrator:
+    name: LangevinMiddle
+    timestep_fs: 0.1
+    friction_per_ps: 1.0
+    seed: 6122
+  md:
+    equilibration_steps: 20000
+    production_steps: 2000000
+    report_stride: 10000
+    save_stride: null
+    platform: CUDA
+    temperature_k: 300.0
+    nonbonded_method: PME
+    constraints: None
+    minimize_steps: 1000
+    minimize_tolerance: 10.0
+  windows:
+    gap_umbrella:
+      centers_kj_mol: [-46000.0, -45400.0, -44800.0, -44200.0, -43600.0, -43000.0, -42400.0, -41800.0, -41200.0, -40600.0, -40000.0, -39400.0, -38800.0, -38200.0, -37600.0, -37000.0, -36400.0, -35800.0, -35200.0, -34600.0, -34000.0, -33400.0, -32800.0, -32200.0, -31600.0, -31000.0, -30400.0, -29800.0, -29200.0, -28600.0, -28000.0, -27400.0, -26800.0, -26200.0, -25600.0, -25000.0, -24400.0, -23800.0, -23200.0, -22600.0, -22000.0, -21400.0, -20800.0, -20200.0, -19600.0, -19000.0, -18400.0, -17800.0, -17200.0, -16600.0, -16000.0]
+      force_constant_kj_mol2: 1.0e-7
+observables:
+  gap:
+    shifted: true
+  distances:
+    - name: donor_h
+      atom1: 17
+      atom2: 22
+    - name: h_acceptor
+      atom1: 22
+      atom2: 19
+analysis:
+  histogram:
+    bin_min_kj_mol: -60000.0
+    bin_max_kj_mol: 20000.0
+    n_bins: 320
+  pmf:
+    temperature_k: 300.0
+    zero_mode: reactant_min
+  barrier:
+    reactant_region: [-42000.0, -28000.0]
+    product_region: [-24000.0, -14000.0]

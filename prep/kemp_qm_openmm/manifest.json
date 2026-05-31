@@ -1,0 +1,24 @@
+{
+  "source_qm_xyz": {
+    "RC": "/home/mestevez/Projects/EVB/PoC1/KEMP/systems/KEMP_implicit/RC_final.xyz",
+    "PROD": "/home/mestevez/Projects/EVB/PoC1/KEMP/systems/KEMP_implicit/PROD_final.xyz"
+  },
+  "previous_explicit_solvent_template": "/home/mestevez/Projects/EVB/PoC1/KEMP/systems/KEMP-solvent/RC.pdb",
+  "reactive_atom_count": 23,
+  "box_angstrom": [
+    31.466,
+    31.835,
+    30.366
+  ],
+  "reaction_coordinates_0based": {
+    "proton_transfer": {
+      "donor": 6,
+      "proton": 15,
+      "acceptor": 19
+    },
+    "ring_opening": {
+      "atom1": 1,
+      "atom2": 11
+    }
+  }
+}

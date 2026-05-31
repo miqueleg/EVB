@@ -1,0 +1,2 @@
+Terminated                 kemp-evb sample-series --config /home/mestevez/Projects/EVB/PoC1/KEMP/runs/weekend_kemp_solvent/configs/rep04.yaml
+ERROR conda.cli.main_run:execute(142): `conda run kemp-evb sample-series --config /home/mestevez/Projects/EVB/PoC1/KEMP/runs/weekend_kemp_solvent/configs/rep04.yaml` failed. (See above for error)

@@ -1,0 +1,42 @@
+[
+  {
+    "window_id": "w000",
+    "lambda_value": 0.0,
+    "n_frames": 20,
+    "final_step": 0,
+    "final_time_ps": 0.0,
+    "output_dir": "outputs/kemp_solvent_real_scan/windows/w000"
+  },
+  {
+    "window_id": "w001",
+    "lambda_value": 0.25,
+    "n_frames": 20,
+    "final_step": 0,
+    "final_time_ps": 0.0,
+    "output_dir": "outputs/kemp_solvent_real_scan/windows/w001"
+  },
+  {
+    "window_id": "w002",
+    "lambda_value": 0.5,
+    "n_frames": 20,
+    "final_step": 0,
+    "final_time_ps": 0.0,
+    "output_dir": "outputs/kemp_solvent_real_scan/windows/w002"
+  },
+  {
+    "window_id": "w003",
+    "lambda_value": 0.75,
+    "n_frames": 20,
+    "final_step": 0,
+    "final_time_ps": 0.0,
+    "output_dir": "outputs/kemp_solvent_real_scan/windows/w003"
+  },
+  {
+    "window_id": "w004",
+    "lambda_value": 1.0,
+    "n_frames": 20,
+    "final_step": 0,
+    "final_time_ps": 0.0,
+    "output_dir": "outputs/kemp_solvent_real_scan/windows/w004"
+  }
+]

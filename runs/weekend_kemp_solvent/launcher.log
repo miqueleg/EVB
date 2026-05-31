@@ -1,0 +1,10 @@
+nohup: ignoring input
+Wrote 30 replica configs to /home/mestevez/Projects/EVB/PoC1/KEMP/runs/weekend_kemp_solvent/configs
+Manifest: /home/mestevez/Projects/EVB/PoC1/KEMP/runs/weekend_kemp_solvent/manifest.json
+[2026-04-17T17:25:24+02:00] START rep01
+[2026-04-18T13:12:48+02:00] DONE rep01
+[2026-04-18T13:12:48+02:00] START rep02
+[2026-04-19T09:00:18+02:00] DONE rep02
+[2026-04-19T09:00:18+02:00] START rep03
+[2026-04-20T04:47:39+02:00] DONE rep03
+[2026-04-20T04:47:39+02:00] START rep04

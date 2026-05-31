@@ -1,0 +1,78 @@
+project:
+  name: kemp-solvent-pt-umbrella-rep01
+  output_dir: outputs/kemp_solvent_pt_ts_check/rep01
+reaction:
+  metadata:
+    name: kemp_solvent_pt_ts_check_rep01
+    phase: solution
+    temperature_k: 300.0
+    pressure_bar: 1.0
+    notes: Short CUDA pilot using direct proton-transfer umbrella plus restrained pre-equilibration.
+  atoms:
+    donor: 6
+    proton: 15
+    acceptor: 19
+states:
+  state1:
+    topology: outputs/prepared_systems/kemp_solvent_boxsynced/RC.prmtop
+    coordinates: outputs/prepared_systems/kemp_solvent_boxsynced/RC.pdb
+    format: amber
+  state2:
+    topology: outputs/prepared_systems/kemp_solvent_boxsynced/PROD.prmtop
+    coordinates: outputs/prepared_systems/kemp_solvent_boxsynced/PROD.pdb
+    format: amber
+evb:
+  coupling_model:
+    model: constant
+    parameters:
+      delta_alpha_kj_mol: 0.0
+      h12_kj_mol: 20.0
+sampling:
+  mode: proton_transfer_umbrella
+  integrator:
+    name: LangevinMiddle
+    timestep_fs: 0.1
+    friction_per_ps: 1.0
+    seed: 7201
+  md:
+    equilibration_steps: 2000
+    production_steps: 4000
+    report_stride: 100
+    save_stride: null
+    platform: CUDA
+    temperature_k: 300.0
+    nonbonded_method: PME
+    constraints: None
+    minimize_steps: 200
+    minimize_tolerance: 10.0
+  equilibration_restraint:
+    enabled: true
+    atom1: 6
+    atom2: 19
+    target_distance_nm: 0.22
+    force_constant_kj_mol_nm2: 2092.0
+  windows:
+    proton_transfer_umbrella:
+      centers_nm: [-0.2, -0.192, -0.184, -0.176, -0.168, -0.16, -0.152, -0.144, -0.136, -0.128, -0.12, -0.112, -0.104, -0.096, -0.088, -0.08, -0.072, -0.064, -0.056, -0.048, -0.04, -0.032, -0.024, -0.016, -0.008, 0.0, 0.008, 0.016, 0.024, 0.032, 0.04, 0.048, 0.056, 0.064, 0.072, 0.08, 0.088, 0.096, 0.104, 0.112, 0.12, 0.128, 0.136, 0.144, 0.152, 0.16, 0.168, 0.176, 0.184, 0.192]
+      force_constant_kj_mol_nm2: 25000.0
+observables:
+  gap:
+    shifted: true
+  distances:
+    - name: donor_h
+      atom1: 6
+      atom2: 15
+    - name: h_acceptor
+      atom1: 15
+      atom2: 19
+analysis:
+  histogram:
+    bin_min_kj_mol: -60000.0
+    bin_max_kj_mol: 20000.0
+    n_bins: 320
+  pmf:
+    temperature_k: 300.0
+    zero_mode: reactant_min
+  barrier:
+    reactant_region: [-42000.0, -28000.0]
+    product_region: [-24000.0, -14000.0]

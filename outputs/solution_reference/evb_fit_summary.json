@@ -1,0 +1,9 @@
+{
+  "delta_alpha_kj_mol": 473.84994629381254,
+  "h12_kj_mol": 0.0,
+  "target_barrier_kj_mol": 99.5792,
+  "target_barrier_kcal_mol": 23.8,
+  "reactant_reference_energy_kj_mol": -42623.24540818843,
+  "fitted_barrier_kj_mol": 0.0,
+  "ts_index": 0
+}

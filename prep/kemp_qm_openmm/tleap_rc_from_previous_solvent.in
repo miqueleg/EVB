@@ -1,0 +1,17 @@
+source leaprc.gaff2
+source leaprc.water.tip3p
+
+loadamberparams 02_ambertools/rc_substrate.frcmod
+loadamberparams 02_ambertools/rc_partner.frcmod
+
+SUBR = loadmol2 02_ambertools/rc_substrate_named.mol2
+BAR = loadmol2 02_ambertools/rc_partner_named.mol2
+SOLV = loadpdb 05_templates/solvent_only_from_old_rc.pdb
+
+RC = combine { SUBR BAR SOLV }
+set RC box { 31.466 31.835 30.366 }
+check RC
+
+savepdb RC 03_solvated_rc/RC_solvated_initial.pdb
+saveamberparm RC 03_solvated_rc/RC_solvated_initial.prmtop 03_solvated_rc/RC_solvated_initial.inpcrd
+quit

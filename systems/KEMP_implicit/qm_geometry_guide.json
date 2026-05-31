@@ -1,0 +1,123 @@
+{
+  "recommended_indices_0based": {
+    "proton_transfer": {
+      "donor": 6,
+      "proton": 15,
+      "acceptor": 19
+    },
+    "ring_opening": {
+      "atom1": 1,
+      "atom2": 11
+    }
+  },
+  "structures": {
+    "RC": {
+      "path": "/home/mestevez/Projects/EVB/PoC1/KEMP/systems/KEMP_implicit/RC_final.xyz",
+      "energy_hartree": -155.69395661212,
+      "symbols": [
+        "N",
+        "N",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "O",
+        "O",
+        "O",
+        "H",
+        "H",
+        "H",
+        "H",
+        "C",
+        "C",
+        "O",
+        "O",
+        "H",
+        "H",
+        "H"
+      ],
+      "proton_transfer_rc_angstrom": -0.9864090392882627,
+      "ring_opening_rc_angstrom": 1.3997714475331338,
+      "distances_angstrom": {
+        "donor_h": 1.0887681217440195,
+        "h_acceptor": 2.0751771610322822,
+        "n_o_breaking": 1.3997714475331338
+      }
+    },
+    "TS": {
+      "path": "/home/mestevez/Projects/EVB/PoC1/KEMP/systems/KEMP_implicit/TS_final.xyz",
+      "energy_hartree": -155.665683590683,
+      "symbols": [
+        "N",
+        "N",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "O",
+        "O",
+        "O",
+        "H",
+        "H",
+        "H",
+        "H",
+        "C",
+        "C",
+        "O",
+        "O",
+        "H",
+        "H",
+        "H"
+      ],
+      "proton_transfer_rc_angstrom": 0.5012396729445001,
+      "ring_opening_rc_angstrom": 1.5859019224674655,
+      "distances_angstrom": {
+        "donor_h": 1.5864561506732533,
+        "h_acceptor": 1.0852164777287532,
+        "n_o_breaking": 1.5859019224674655
+      }
+    },
+    "PROD": {
+      "path": "/home/mestevez/Projects/EVB/PoC1/KEMP/systems/KEMP_implicit/PROD_final.xyz",
+      "energy_hartree": -155.75282245739,
+      "symbols": [
+        "N",
+        "N",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "O",
+        "O",
+        "O",
+        "H",
+        "H",
+        "H",
+        "H",
+        "C",
+        "C",
+        "O",
+        "O",
+        "H",
+        "H",
+        "H"
+      ],
+      "proton_transfer_rc_angstrom": 1.989842548283717,
+      "ring_opening_rc_angstrom": 3.51824753499409,
+      "distances_angstrom": {
+        "donor_h": 2.973759650754244,
+        "h_acceptor": 0.9839171024705271,
+        "n_o_breaking": 3.51824753499409
+      }
+    }
+  }
+}

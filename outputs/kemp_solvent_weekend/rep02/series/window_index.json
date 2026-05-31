@@ -1,0 +1,461 @@
+[
+  {
+    "window_id": "u000",
+    "gap_center_kj_mol": -46000.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u000"
+  },
+  {
+    "window_id": "u001",
+    "gap_center_kj_mol": -45400.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u001"
+  },
+  {
+    "window_id": "u002",
+    "gap_center_kj_mol": -44800.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u002"
+  },
+  {
+    "window_id": "u003",
+    "gap_center_kj_mol": -44200.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u003"
+  },
+  {
+    "window_id": "u004",
+    "gap_center_kj_mol": -43600.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u004"
+  },
+  {
+    "window_id": "u005",
+    "gap_center_kj_mol": -43000.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u005"
+  },
+  {
+    "window_id": "u006",
+    "gap_center_kj_mol": -42400.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u006"
+  },
+  {
+    "window_id": "u007",
+    "gap_center_kj_mol": -41800.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u007"
+  },
+  {
+    "window_id": "u008",
+    "gap_center_kj_mol": -41200.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u008"
+  },
+  {
+    "window_id": "u009",
+    "gap_center_kj_mol": -40600.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u009"
+  },
+  {
+    "window_id": "u010",
+    "gap_center_kj_mol": -40000.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u010"
+  },
+  {
+    "window_id": "u011",
+    "gap_center_kj_mol": -39400.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u011"
+  },
+  {
+    "window_id": "u012",
+    "gap_center_kj_mol": -38800.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u012"
+  },
+  {
+    "window_id": "u013",
+    "gap_center_kj_mol": -38200.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u013"
+  },
+  {
+    "window_id": "u014",
+    "gap_center_kj_mol": -37600.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u014"
+  },
+  {
+    "window_id": "u015",
+    "gap_center_kj_mol": -37000.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u015"
+  },
+  {
+    "window_id": "u016",
+    "gap_center_kj_mol": -36400.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u016"
+  },
+  {
+    "window_id": "u017",
+    "gap_center_kj_mol": -35800.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u017"
+  },
+  {
+    "window_id": "u018",
+    "gap_center_kj_mol": -35200.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u018"
+  },
+  {
+    "window_id": "u019",
+    "gap_center_kj_mol": -34600.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u019"
+  },
+  {
+    "window_id": "u020",
+    "gap_center_kj_mol": -34000.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u020"
+  },
+  {
+    "window_id": "u021",
+    "gap_center_kj_mol": -33400.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u021"
+  },
+  {
+    "window_id": "u022",
+    "gap_center_kj_mol": -32800.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u022"
+  },
+  {
+    "window_id": "u023",
+    "gap_center_kj_mol": -32200.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u023"
+  },
+  {
+    "window_id": "u024",
+    "gap_center_kj_mol": -31600.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u024"
+  },
+  {
+    "window_id": "u025",
+    "gap_center_kj_mol": -31000.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u025"
+  },
+  {
+    "window_id": "u026",
+    "gap_center_kj_mol": -30400.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u026"
+  },
+  {
+    "window_id": "u027",
+    "gap_center_kj_mol": -29800.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u027"
+  },
+  {
+    "window_id": "u028",
+    "gap_center_kj_mol": -29200.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u028"
+  },
+  {
+    "window_id": "u029",
+    "gap_center_kj_mol": -28600.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u029"
+  },
+  {
+    "window_id": "u030",
+    "gap_center_kj_mol": -28000.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u030"
+  },
+  {
+    "window_id": "u031",
+    "gap_center_kj_mol": -27400.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u031"
+  },
+  {
+    "window_id": "u032",
+    "gap_center_kj_mol": -26800.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u032"
+  },
+  {
+    "window_id": "u033",
+    "gap_center_kj_mol": -26200.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u033"
+  },
+  {
+    "window_id": "u034",
+    "gap_center_kj_mol": -25600.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u034"
+  },
+  {
+    "window_id": "u035",
+    "gap_center_kj_mol": -25000.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u035"
+  },
+  {
+    "window_id": "u036",
+    "gap_center_kj_mol": -24400.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u036"
+  },
+  {
+    "window_id": "u037",
+    "gap_center_kj_mol": -23800.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u037"
+  },
+  {
+    "window_id": "u038",
+    "gap_center_kj_mol": -23200.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u038"
+  },
+  {
+    "window_id": "u039",
+    "gap_center_kj_mol": -22600.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u039"
+  },
+  {
+    "window_id": "u040",
+    "gap_center_kj_mol": -22000.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u040"
+  },
+  {
+    "window_id": "u041",
+    "gap_center_kj_mol": -21400.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u041"
+  },
+  {
+    "window_id": "u042",
+    "gap_center_kj_mol": -20800.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u042"
+  },
+  {
+    "window_id": "u043",
+    "gap_center_kj_mol": -20200.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u043"
+  },
+  {
+    "window_id": "u044",
+    "gap_center_kj_mol": -19600.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u044"
+  },
+  {
+    "window_id": "u045",
+    "gap_center_kj_mol": -19000.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u045"
+  },
+  {
+    "window_id": "u046",
+    "gap_center_kj_mol": -18400.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u046"
+  },
+  {
+    "window_id": "u047",
+    "gap_center_kj_mol": -17800.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u047"
+  },
+  {
+    "window_id": "u048",
+    "gap_center_kj_mol": -17200.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u048"
+  },
+  {
+    "window_id": "u049",
+    "gap_center_kj_mol": -16600.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u049"
+  },
+  {
+    "window_id": "u050",
+    "gap_center_kj_mol": -16000.0,
+    "force_constant_kj_mol2": 1e-07,
+    "n_frames": 200,
+    "final_step": 2020000,
+    "final_time_ps": 202.0,
+    "output_dir": "outputs/kemp_solvent_weekend/rep02/windows/u050"
+  }
+]

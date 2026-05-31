@@ -1,0 +1,12 @@
+{
+  "window_id": "p018",
+  "rc_center_nm": -0.056,
+  "force_constant_kj_mol_nm2": 25000.0,
+  "n_frames": 20,
+  "final_step": 3000,
+  "final_time_ps": 0.3,
+  "proton_transfer_rc_min_nm": -0.11975014815390589,
+  "proton_transfer_rc_max_nm": -0.09463604416595608,
+  "proton_transfer_positive_frames": 0,
+  "output_dir": "outputs/kemp_solvent_pt_bidirectional/branches/forward/windows/p018"
+}

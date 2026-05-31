@@ -1,0 +1,21 @@
+{
+  "window_id": "w006",
+  "lambda_value": 0.6,
+  "n_frames": 60,
+  "final_step": 3200,
+  "final_time_ps": 0.16,
+  "proton_transfer_rc_min_nm": -0.2230046332701085,
+  "proton_transfer_rc_max_nm": 0.4205643807484011,
+  "proton_transfer_positive_frames": 36,
+  "reaction_coordinate_ranges_nm": {
+    "proton_transfer_rc": [
+      -0.2230046332701085,
+      0.4205643807484011
+    ],
+    "ring_opening_rc": [
+      0.18819878401082185,
+      0.3798603451821367
+    ]
+  },
+  "output_dir": "outputs/kemp_qm_openmm_mapping_replicates/rep03/windows/w006"
+}

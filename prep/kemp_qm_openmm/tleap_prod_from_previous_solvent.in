@@ -1,0 +1,17 @@
+source leaprc.gaff2
+source leaprc.water.tip3p
+
+loadamberparams 02_ambertools/prod_substrate.frcmod
+loadamberparams 02_ambertools/prod_partner.frcmod
+
+SUBP = loadmol2 02_ambertools/prod_substrate_named.mol2
+ACP = loadmol2 02_ambertools/prod_partner_named.mol2
+SOLV = loadpdb 05_templates/solvent_only_from_old_rc.pdb
+
+PROD = combine { SUBP ACP SOLV }
+set PROD box { 31.466 31.835 30.366 }
+check PROD
+
+savepdb PROD 03_solvated_prod/PROD_solvated_initial.pdb
+saveamberparm PROD 03_solvated_prod/PROD_solvated_initial.prmtop 03_solvated_prod/PROD_solvated_initial.inpcrd
+quit

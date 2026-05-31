@@ -1,0 +1,62 @@
+{
+  "state1_shell": {
+    "parameters": {
+      "delta_alpha": -400.0,
+      "h12": 0.0
+    },
+    "qm_relative_kj_mol": {
+      "TS": 74.2308070390718,
+      "PROD": -154.55225438746857
+    },
+    "profiles": {
+      "RC": {
+        "E1_kj_mol": -31242.273048383708,
+        "E2_kj_mol": 10042.820016115975,
+        "Eevb_kj_mol": -31242.273048383708,
+        "relative_to_RC_kj_mol": 0.0
+      },
+      "TS": {
+        "E1_kj_mol": 37628.98525138715,
+        "E2_kj_mol": -21917.731001943175,
+        "Eevb_kj_mol": -22317.731001943175,
+        "relative_to_RC_kj_mol": 8924.542046440532
+      },
+      "PROD": {
+        "E1_kj_mol": 6705307.082877412,
+        "E2_kj_mol": 6472885.96178191,
+        "Eevb_kj_mol": 6472485.96178191,
+        "relative_to_RC_kj_mol": 6503728.234830294
+      }
+    }
+  },
+  "state2_shell": {
+    "parameters": {
+      "delta_alpha": -400.0,
+      "h12": 0.0
+    },
+    "qm_relative_kj_mol": {
+      "TS": 74.2308070390718,
+      "PROD": -154.55225438746857
+    },
+    "profiles": {
+      "RC": {
+        "E1_kj_mol": -30980.372234088893,
+        "E2_kj_mol": 9883.776027411293,
+        "Eevb_kj_mol": -30980.372234088893,
+        "relative_to_RC_kj_mol": 0.0
+      },
+      "TS": {
+        "E1_kj_mol": 36571.87791701177,
+        "E2_kj_mol": -23496.949753135268,
+        "Eevb_kj_mol": -23896.949753135268,
+        "relative_to_RC_kj_mol": 7083.4224809536245
+      },
+      "PROD": {
+        "E1_kj_mol": 306966.38084389054,
+        "E2_kj_mol": 88767.4504145878,
+        "Eevb_kj_mol": 88367.4504145878,
+        "relative_to_RC_kj_mol": 119347.8226486767
+      }
+    }
+  }
+}

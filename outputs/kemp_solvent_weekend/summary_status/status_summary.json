@@ -1,0 +1,16 @@
+{
+  "completed_replicates": [
+    "rep01",
+    "rep02",
+    "rep03"
+  ],
+  "partial_replicates": [
+    "rep04"
+  ],
+  "n_completed": 3,
+  "rep04_windows_completed": 17,
+  "barrier_mean_completed_kj_mol": 4.79439817468534,
+  "barrier_std_completed_kj_mol": 0.08961164186644022,
+  "reaction_free_energy_mean_completed_kj_mol": 4.544029387311652,
+  "reaction_free_energy_std_completed_kj_mol": 0.12219702101414306
+}

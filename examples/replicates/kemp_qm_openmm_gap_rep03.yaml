@@ -1,0 +1,85 @@
+project:
+  name: kemp-qm-openmm-gap-rep03
+  output_dir: outputs/kemp_qm_openmm_gap_replicates/rep03
+reaction:
+  metadata:
+    name: kemp_qm_openmm_gap_rep03
+    phase: solution
+    temperature_k: 300.0
+    pressure_bar: 1.0
+    notes: Replicate 3 of the calibrated gap-native EVB umbrella series on the canonical OpenMM bundles.
+  atoms:
+    donor: 6
+    proton: 15
+    acceptor: 19
+  substrate_atoms: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+states:
+  state1:
+    topology: prep/kemp_qm_openmm/07_openmm_bundles/RC/system.xml
+    coordinates: prep/kemp_qm_openmm/07_openmm_bundles/RC/coordinates.pdb
+    format: openmm
+  state2:
+    topology: prep/kemp_qm_openmm/07_openmm_bundles/PROD/system.xml
+    coordinates: prep/kemp_qm_openmm/07_openmm_bundles/PROD/coordinates.pdb
+    format: openmm
+evb:
+  coupling_model:
+    model: constant
+    parameters:
+      delta_alpha_kj_mol: -53353.839656333774
+      h12_kj_mol: 49623.68578350022
+sampling:
+  mode: gap_umbrella
+  integrator:
+    name: LangevinMiddle
+    timestep_fs: 0.1
+    friction_per_ps: 1.0
+    seed: 9103
+  md:
+    equilibration_steps: 1000
+    production_steps: 5000
+    report_stride: 100
+    platform: CPU
+    temperature_k: 300.0
+    nonbonded_method: PME
+    constraints: None
+    minimize_steps: 200
+    minimize_tolerance: 10.0
+  windows:
+    gap_umbrella:
+      centers_kj_mol: [20000.0, 50000.0, 80000.0, 110000.0, 140000.0, 170000.0, 200000.0, 230000.0, 260000.0]
+      force_constant_kj_mol2: 0.005
+  seed_windows:
+    - window_id: u003
+      coordinates: prep/kemp_qm_openmm/05_templates/TS_solvated_template.pdb
+    - window_id: u006
+      coordinates: prep/kemp_qm_openmm/07_openmm_bundles/PROD/coordinates.pdb
+observables:
+  gap:
+    shifted: true
+  reaction_coordinates:
+    - name: proton_transfer_rc
+      kind: difference_of_distances
+      atom1: 6
+      atom2: 15
+      atom3: 19
+      event_threshold_nm: 0.0
+    - name: ring_opening_rc
+      kind: distance
+      atom1: 1
+      atom2: 11
+  distances:
+    - name: donor_h
+      atom1: 6
+      atom2: 15
+    - name: h_acceptor
+      atom1: 15
+      atom2: 19
+analysis:
+  histogram:
+    bin_min_kj_mol: 0.0
+    bin_max_kj_mol: 300000.0
+    n_bins: 300
+  pmf:
+    temperature_k: 300.0
+    zero_mode: reactant_min

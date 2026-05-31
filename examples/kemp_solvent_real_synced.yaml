@@ -1,0 +1,76 @@
+project:
+  name: kemp-solvent-real-scan
+  output_dir: outputs/kemp_solvent_real_scan
+reaction:
+  metadata:
+    name: kemp_substrate_formicacid_water_real
+    phase: solution
+    temperature_k: 300.0
+    pressure_bar: 1.0
+    notes: Real solvent EVB test on synced RC/PROD states.
+  atoms:
+    donor: 6
+    proton: 15
+    acceptor: 19
+states:
+  state1:
+    topology: outputs/prepared_systems/kemp_solvent_synced/RC.prmtop
+    coordinates: outputs/prepared_systems/kemp_solvent_synced/RC.pdb
+    format: amber
+  state2:
+    topology: outputs/prepared_systems/kemp_solvent_synced/PROD.prmtop
+    coordinates: outputs/prepared_systems/kemp_solvent_synced/PROD.pdb
+    format: amber
+evb:
+  coupling_model:
+    model: constant
+    parameters:
+      delta_alpha_kj_mol: 0.0
+      h12_kj_mol: 0.0
+sampling:
+  mode: mapping
+  integrator:
+    name: LangevinMiddle
+    timestep_fs: 0.5
+    friction_per_ps: 1.0
+    seed: 2026
+  md:
+    equilibration_steps: 50
+    production_steps: 200
+    report_stride: 10
+    save_stride: null
+    platform: CPU
+    temperature_k: 300.0
+    nonbonded_method: PME
+    constraints: None
+    minimize_steps: 500
+    minimize_tolerance: 10.0
+  windows:
+    mapping:
+      lambda_values: [0.0, 0.25, 0.5, 0.75, 1.0]
+observables:
+  gap:
+    shifted: true
+  distances:
+    - name: donor_h
+      atom1: 6
+      atom2: 15
+    - name: h_acceptor
+      atom1: 15
+      atom2: 19
+analysis:
+  histogram:
+    bin_min_kj_mol: -50000.0
+    bin_max_kj_mol: 50000.0
+    n_bins: 200
+  pmf:
+    temperature_k: 300.0
+    zero_mode: reactant_min
+  barrier:
+    reactant_region: [-1.0, -0.02]
+    product_region: [0.02, 1.0]
+fit:
+  ensemble_targets:
+    reaction_free_energy_kj_mol: null
+    barrier_kj_mol: null
+    source_label: null

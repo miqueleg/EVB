@@ -1,0 +1,84 @@
+project:
+  name: kemp-qm-openmm-mapping-calibrated
+  output_dir: outputs/kemp_qm_openmm_mapping_calibrated
+reaction:
+  metadata:
+    name: kemp_qm_openmm_mapping_calibrated
+    phase: solution
+    temperature_k: 300.0
+    pressure_bar: 1.0
+    notes: QM-calibrated EVB mapping-window pilot on the canonical OpenMM bundles.
+  atoms:
+    donor: 6
+    proton: 15
+    acceptor: 19
+  substrate_atoms: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+states:
+  state1:
+    topology: prep/kemp_qm_openmm/07_openmm_bundles/RC/system.xml
+    coordinates: prep/kemp_qm_openmm/07_openmm_bundles/RC/coordinates.pdb
+    format: openmm
+  state2:
+    topology: prep/kemp_qm_openmm/07_openmm_bundles/PROD/system.xml
+    coordinates: prep/kemp_qm_openmm/07_openmm_bundles/PROD/coordinates.pdb
+    format: openmm
+evb:
+  coupling_model:
+    model: constant
+    parameters:
+      delta_alpha_kj_mol: -53353.839656333774
+      h12_kj_mol: 49623.68578350022
+sampling:
+  mode: mapping
+  integrator:
+    name: LangevinMiddle
+    timestep_fs: 0.05
+    friction_per_ps: 1.0
+    seed: 9203
+  md:
+    equilibration_steps: 100
+    production_steps: 1000
+    report_stride: 50
+    platform: CPU
+    temperature_k: 300.0
+    nonbonded_method: PME
+    constraints: None
+    minimize_steps: 0
+    minimize_tolerance: 10.0
+  windows:
+    mapping:
+      lambda_values: [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+  seed_windows:
+    - window_id: w005
+      coordinates: prep/kemp_qm_openmm/05_templates/TS_solvated_template.pdb
+    - window_id: w006
+      coordinates: prep/kemp_qm_openmm/07_openmm_bundles/PROD/coordinates.pdb
+observables:
+  gap:
+    shifted: true
+  reaction_coordinates:
+    - name: proton_transfer_rc
+      kind: difference_of_distances
+      atom1: 6
+      atom2: 15
+      atom3: 19
+      event_threshold_nm: 0.0
+    - name: ring_opening_rc
+      kind: distance
+      atom1: 1
+      atom2: 11
+  distances:
+    - name: donor_h
+      atom1: 6
+      atom2: 15
+    - name: h_acceptor
+      atom1: 15
+      atom2: 19
+analysis:
+  histogram:
+    bin_min_kj_mol: -100000.0
+    bin_max_kj_mol: 300000.0
+    n_bins: 320
+  pmf:
+    temperature_k: 300.0
+    zero_mode: reactant_min

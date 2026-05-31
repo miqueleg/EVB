@@ -1,0 +1,78 @@
+[
+  {
+    "delta_alpha_kj_mol": -25000.0,
+    "status": "ok_partial",
+    "completed_windows": 1,
+    "best_gap_window": {
+      "window_id": "u000",
+      "closest_gap_to_zero": -12624702.867643509,
+      "w2_at_closest_gap": 2.5097146583163976e-12,
+      "pt_at_closest_gap": -0.6992550310354382,
+      "ro_at_closest_gap": 0.6416170594334387
+    },
+    "best_mixing_window": {
+      "window_id": "u000",
+      "closest_mixing_w2": 2.5097146583163976e-12,
+      "gap_at_closest_mixing": -12624702.867643509,
+      "pt_at_closest_mixing": -0.6992550310354382,
+      "ro_at_closest_mixing": 0.6416170594334387
+    }
+  },
+  {
+    "delta_alpha_kj_mol": 0.0,
+    "status": "ok",
+    "completed_windows": 8,
+    "best_gap_window": {
+      "window_id": "u003",
+      "closest_gap_to_zero": -20036.266064695235,
+      "w2_at_closest_gap": 9.963802556356427e-07,
+      "pt_at_closest_gap": -0.1481769226527489,
+      "ro_at_closest_gap": 0.1528151866205277
+    },
+    "best_mixing_window": {
+      "window_id": "u003",
+      "closest_mixing_w2": 9.963802556356427e-07,
+      "gap_at_closest_mixing": -20036.266064695235,
+      "pt_at_closest_mixing": -0.1481769226527489,
+      "ro_at_closest_mixing": 0.1528151866205277
+    }
+  },
+  {
+    "delta_alpha_kj_mol": 100000.0,
+    "status": "ok_partial",
+    "completed_windows": 7,
+    "best_gap_window": {
+      "window_id": "u005",
+      "closest_gap_to_zero": 71408.66339503424,
+      "w2_at_closest_gap": 0.999999921556298,
+      "pt_at_closest_gap": 0.19704247497333208,
+      "ro_at_closest_gap": 0.36030513171362266
+    },
+    "best_mixing_window": {
+      "window_id": "u005",
+      "closest_mixing_w2": 0.999999921556298,
+      "gap_at_closest_mixing": 71408.66339503424,
+      "pt_at_closest_mixing": 0.19704247497333208,
+      "ro_at_closest_mixing": 0.36030513171362266
+    }
+  },
+  {
+    "delta_alpha_kj_mol": 50000.0,
+    "status": "ok",
+    "completed_windows": 8,
+    "best_gap_window": {
+      "window_id": "u001",
+      "closest_gap_to_zero": -68115.16824767484,
+      "w2_at_closest_gap": 8.621289165899881e-08,
+      "pt_at_closest_gap": -0.16850038832944533,
+      "ro_at_closest_gap": 0.156855576939847
+    },
+    "best_mixing_window": {
+      "window_id": "u001",
+      "closest_mixing_w2": 8.621289165899881e-08,
+      "gap_at_closest_mixing": -68115.16824767484,
+      "pt_at_closest_mixing": -0.16850038832944533,
+      "ro_at_closest_mixing": 0.156855576939847
+    }
+  }
+]

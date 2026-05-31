@@ -1,0 +1,233 @@
+[
+  {
+    "window_id": "w000",
+    "lambda_value": 0.0,
+    "n_frames": 20,
+    "final_step": 1100,
+    "final_time_ps": 0.055,
+    "proton_transfer_rc_min_nm": -0.1359794731238081,
+    "proton_transfer_rc_max_nm": -0.10601621216403014,
+    "proton_transfer_positive_frames": 0,
+    "reaction_coordinate_ranges_nm": {
+      "proton_transfer_rc": [
+        -0.1359794731238081,
+        -0.10601621216403014
+      ],
+      "ring_opening_rc": [
+        0.1454461428750485,
+        0.14832913148269733
+      ]
+    },
+    "output_dir": "outputs/kemp_qm_openmm_mapping_calibrated/windows/w000"
+  },
+  {
+    "window_id": "w001",
+    "lambda_value": 0.1,
+    "n_frames": 20,
+    "final_step": 1100,
+    "final_time_ps": 0.055,
+    "proton_transfer_rc_min_nm": -0.09561306484732279,
+    "proton_transfer_rc_max_nm": -0.05272301235416019,
+    "proton_transfer_positive_frames": 0,
+    "reaction_coordinate_ranges_nm": {
+      "proton_transfer_rc": [
+        -0.09561306484732279,
+        -0.05272301235416019
+      ],
+      "ring_opening_rc": [
+        0.15566963395111527,
+        0.2844330753398919
+      ]
+    },
+    "output_dir": "outputs/kemp_qm_openmm_mapping_calibrated/windows/w001"
+  },
+  {
+    "window_id": "w002",
+    "lambda_value": 0.2,
+    "n_frames": 20,
+    "final_step": 1100,
+    "final_time_ps": 0.055,
+    "proton_transfer_rc_min_nm": -0.08818105163065909,
+    "proton_transfer_rc_max_nm": -0.036517148788867165,
+    "proton_transfer_positive_frames": 0,
+    "reaction_coordinate_ranges_nm": {
+      "proton_transfer_rc": [
+        -0.08818105163065909,
+        -0.036517148788867165
+      ],
+      "ring_opening_rc": [
+        0.1632602525788805,
+        0.2684910365141465
+      ]
+    },
+    "output_dir": "outputs/kemp_qm_openmm_mapping_calibrated/windows/w002"
+  },
+  {
+    "window_id": "w003",
+    "lambda_value": 0.3,
+    "n_frames": 20,
+    "final_step": 1100,
+    "final_time_ps": 0.055,
+    "proton_transfer_rc_min_nm": -0.07814511102700973,
+    "proton_transfer_rc_max_nm": -0.017585535282902715,
+    "proton_transfer_positive_frames": 0,
+    "reaction_coordinate_ranges_nm": {
+      "proton_transfer_rc": [
+        -0.07814511102700973,
+        -0.017585535282902715
+      ],
+      "ring_opening_rc": [
+        0.17065642468564693,
+        0.29977580293059514
+      ]
+    },
+    "output_dir": "outputs/kemp_qm_openmm_mapping_calibrated/windows/w003"
+  },
+  {
+    "window_id": "w004",
+    "lambda_value": 0.4,
+    "n_frames": 20,
+    "final_step": 1100,
+    "final_time_ps": 0.055,
+    "proton_transfer_rc_min_nm": -0.06724495748249393,
+    "proton_transfer_rc_max_nm": -0.008747768525750987,
+    "proton_transfer_positive_frames": 0,
+    "reaction_coordinate_ranges_nm": {
+      "proton_transfer_rc": [
+        -0.06724495748249393,
+        -0.008747768525750987
+      ],
+      "ring_opening_rc": [
+        0.1817940399015257,
+        0.26818801491198263
+      ]
+    },
+    "output_dir": "outputs/kemp_qm_openmm_mapping_calibrated/windows/w004"
+  },
+  {
+    "window_id": "w005",
+    "lambda_value": 0.5,
+    "n_frames": 20,
+    "final_step": 1100,
+    "final_time_ps": 0.055,
+    "proton_transfer_rc_min_nm": -0.29207768727954087,
+    "proton_transfer_rc_max_nm": 0.3754488210086213,
+    "proton_transfer_positive_frames": 10,
+    "reaction_coordinate_ranges_nm": {
+      "proton_transfer_rc": [
+        -0.29207768727954087,
+        0.3754488210086213
+      ],
+      "ring_opening_rc": [
+        0.17918790843414134,
+        0.37229344452217744
+      ]
+    },
+    "output_dir": "outputs/kemp_qm_openmm_mapping_calibrated/windows/w005"
+  },
+  {
+    "window_id": "w006",
+    "lambda_value": 0.6,
+    "n_frames": 20,
+    "final_step": 1100,
+    "final_time_ps": 0.055,
+    "proton_transfer_rc_min_nm": -0.29875578018770743,
+    "proton_transfer_rc_max_nm": 0.3564786607560132,
+    "proton_transfer_positive_frames": 13,
+    "reaction_coordinate_ranges_nm": {
+      "proton_transfer_rc": [
+        -0.29875578018770743,
+        0.3564786607560132
+      ],
+      "ring_opening_rc": [
+        0.20357728597894953,
+        0.29348452238928563
+      ]
+    },
+    "output_dir": "outputs/kemp_qm_openmm_mapping_calibrated/windows/w006"
+  },
+  {
+    "window_id": "w007",
+    "lambda_value": 0.7,
+    "n_frames": 20,
+    "final_step": 1100,
+    "final_time_ps": 0.055,
+    "proton_transfer_rc_min_nm": -0.1974590009699659,
+    "proton_transfer_rc_max_nm": 0.3116812350108542,
+    "proton_transfer_positive_frames": 13,
+    "reaction_coordinate_ranges_nm": {
+      "proton_transfer_rc": [
+        -0.1974590009699659,
+        0.3116812350108542
+      ],
+      "ring_opening_rc": [
+        0.23402245241506175,
+        0.31390800721488044
+      ]
+    },
+    "output_dir": "outputs/kemp_qm_openmm_mapping_calibrated/windows/w007"
+  },
+  {
+    "window_id": "w008",
+    "lambda_value": 0.8,
+    "n_frames": 20,
+    "final_step": 1100,
+    "final_time_ps": 0.055,
+    "proton_transfer_rc_min_nm": -0.058815287233549035,
+    "proton_transfer_rc_max_nm": 0.2505989731348458,
+    "proton_transfer_positive_frames": 19,
+    "reaction_coordinate_ranges_nm": {
+      "proton_transfer_rc": [
+        -0.058815287233549035,
+        0.2505989731348458
+      ],
+      "ring_opening_rc": [
+        0.21032113254391738,
+        0.325861205742586
+      ]
+    },
+    "output_dir": "outputs/kemp_qm_openmm_mapping_calibrated/windows/w008"
+  },
+  {
+    "window_id": "w009",
+    "lambda_value": 0.9,
+    "n_frames": 20,
+    "final_step": 1100,
+    "final_time_ps": 0.055,
+    "proton_transfer_rc_min_nm": -0.03334011017786753,
+    "proton_transfer_rc_max_nm": 0.17521140188974324,
+    "proton_transfer_positive_frames": 17,
+    "reaction_coordinate_ranges_nm": {
+      "proton_transfer_rc": [
+        -0.03334011017786753,
+        0.17521140188974324
+      ],
+      "ring_opening_rc": [
+        0.2391499413116809,
+        0.31601975199009646
+      ]
+    },
+    "output_dir": "outputs/kemp_qm_openmm_mapping_calibrated/windows/w009"
+  },
+  {
+    "window_id": "w010",
+    "lambda_value": 1.0,
+    "n_frames": 20,
+    "final_step": 1100,
+    "final_time_ps": 0.055,
+    "proton_transfer_rc_min_nm": 0.03439110788727673,
+    "proton_transfer_rc_max_nm": 0.23482188332887746,
+    "proton_transfer_positive_frames": 20,
+    "reaction_coordinate_ranges_nm": {
+      "proton_transfer_rc": [
+        0.03439110788727673,
+        0.23482188332887746
+      ],
+      "ring_opening_rc": [
+        0.27083866826559316,
+        0.4392395005570361
+      ]
+    },
+    "output_dir": "outputs/kemp_qm_openmm_mapping_calibrated/windows/w010"
+  }
+]

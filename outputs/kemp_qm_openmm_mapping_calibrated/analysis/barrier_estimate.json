@@ -1,0 +1,10 @@
+{
+  "reactant_gap_kj_mol": 58125.0,
+  "reactant_free_energy_kj_mol": 0.0,
+  "product_gap_kj_mol": 58125.0,
+  "product_free_energy_kj_mol": 0.0,
+  "ts_gap_kj_mol": 58125.0,
+  "ts_free_energy_kj_mol": 0.0,
+  "barrier_forward_kj_mol": 0.0,
+  "reaction_free_energy_kj_mol": 0.0
+}

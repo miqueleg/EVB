@@ -1,0 +1,9 @@
+{
+  "window_id": "u049",
+  "gap_center_kj_mol": -16600.0,
+  "force_constant_kj_mol2": 1e-07,
+  "n_frames": 200,
+  "final_step": 2020000,
+  "final_time_ps": 202.0,
+  "output_dir": "outputs/kemp_solvent_weekend/rep01/windows/u049"
+}

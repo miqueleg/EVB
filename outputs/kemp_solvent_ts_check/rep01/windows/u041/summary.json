@@ -1,0 +1,12 @@
+{
+  "window_id": "u041",
+  "gap_center_kj_mol": -21500.0,
+  "force_constant_kj_mol2": 1e-07,
+  "n_frames": 40,
+  "final_step": 6000,
+  "final_time_ps": 0.6,
+  "proton_transfer_rc_min_nm": -0.21820452094082093,
+  "proton_transfer_rc_max_nm": -0.15339853251984747,
+  "proton_transfer_positive_frames": 0,
+  "output_dir": "outputs/kemp_solvent_ts_check/rep01/windows/u041"
+}

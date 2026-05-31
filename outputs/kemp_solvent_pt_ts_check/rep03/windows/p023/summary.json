@@ -1,0 +1,12 @@
+{
+  "window_id": "p023",
+  "rc_center_nm": -0.016,
+  "force_constant_kj_mol_nm2": 25000.0,
+  "n_frames": 40,
+  "final_step": 6000,
+  "final_time_ps": 0.6,
+  "proton_transfer_rc_min_nm": -0.0994155269347712,
+  "proton_transfer_rc_max_nm": -0.085591085012475,
+  "proton_transfer_positive_frames": 0,
+  "output_dir": "outputs/kemp_solvent_pt_ts_check/rep03/windows/p023"
+}

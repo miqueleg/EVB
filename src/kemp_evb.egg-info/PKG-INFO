@@ -1,0 +1,108 @@
+Metadata-Version: 2.4
+Name: kemp-evb
+Version: 0.1.0
+Summary: Proof-of-concept 2-state EVB driver for Kemp eliminase in OpenMM
+Author: OpenAI Codex
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: numpy>=1.24
+Provides-Extra: openmm
+Requires-Dist: openmm>=8.1; extra == "openmm"
+Provides-Extra: test
+Requires-Dist: pytest>=8.0; extra == "test"
+
+# Kemp EVB OpenMM PoC
+
+Proof-of-concept Python package for two-state EVB dynamics of Kemp eliminase using two diabatic AMBER parameterizations and one shared coordinate set.
+
+## Scope
+
+Version `0.2.0` implements:
+
+- two-state EVB with constant `H12`
+- one offset parameter `delta_alpha`
+- one native OpenMM `System` and one native OpenMM `Context`
+- nested `CustomCVForce` objects for diabatic state energies and the lower EVB surface
+- native OpenMM minimization, integrators, thermostats, and compatibility with later biasing/metadynamics work
+- proton-transfer CV `d(donor-H) - d(acceptor-H)`
+- JSON config input and CLI commands
+
+The EVB surface is
+
+`Eevb = 0.5 * (E1 + E2 + delta_alpha) - sqrt(0.25 * (E1 - E2 - delta_alpha)^2 + H12^2)`
+
+At runtime, `E1` and `E2` are represented as two nested `CustomCVForce` collective variables, each aggregating all energy-bearing forces from one AMBER diabatic state. OpenMM differentiates the final EVB force expression directly, so the propagated force is native to the single EVB `Context`.
+
+## Architecture
+
+- `state1.prmtop` and `state2.prmtop` are each loaded into their own temporary OpenMM `System`
+- each state's forces are cloned into a nested aggregate `CustomCVForce`
+- a top-level `CustomCVForce` computes the lower EVB eigenvalue from `e1`, `e2`, `delta_alpha`, and `h12`
+- the resulting EVB `System` is used with a normal OpenMM `Integrator` and `Context`
+
+This allows:
+
+- `LocalEnergyMinimizer`
+- native OpenMM integrators
+- native thermostats via integrator choice
+- later addition of metadynamics/bias forces on the same `System`
+
+## Layout
+
+- `src/kemp_evb/evb.py`: EVB Hamiltonian and calibration logic
+- `src/kemp_evb/openmm_backend.py`: AMBER loading and native EVB `System` assembly
+- `src/kemp_evb/simulation.py`: native OpenMM `Context` wrapper
+- `src/kemp_evb/cli.py`: CLI commands
+- `examples/kemp_evb_config.json`: example config
+- `tests/test_evb_core.py`: minimal non-OpenMM test coverage
+
+## Install
+
+```bash
+pip install -e .
+pip install openmm
+```
+
+## Input files
+
+Expected AMBER inputs per diabatic state:
+
+- `state1.prmtop`
+- `state1.inpcrd`
+- `state2.prmtop`
+- `state2.inpcrd`
+
+Optional coordinate files for calibration geometries can be `.inpcrd` or `.pdb`.
+
+## Example config
+
+See [examples/kemp_evb_config.json](/home/mestevez/Projects/EVB/PoC1/KEMP/examples/kemp_evb_config.json).
+
+## CLI
+
+```bash
+kemp-evb calibrate --config examples/kemp_evb_config.json
+kemp-evb singlepoint --config examples/kemp_evb_config.json
+kemp-evb minimize --config examples/kemp_evb_config.json
+kemp-evb md --config examples/kemp_evb_config.json
+```
+
+## Outputs
+
+The CLI writes into `output_dir` from the config:
+
+- `calibrated_evb_parameters.json`
+- `calibration_summary.json`
+- `singlepoint.json`
+- `minimization_log.json`
+- `minimized.pdb`
+- `evb_md.dcd`
+- `evb_md_log.csv`
+- `evb_md_final.pdb`
+
+## Notes
+
+- Calibration still evaluates the raw diabatic MM states independently to obtain `E1` and `E2` at the calibration geometries.
+- Runtime propagation now uses a real OpenMM EVB `Context`; it no longer mixes forces in Python during minimization or MD.
+- The current implementation assumes state 1 and state 2 share atom ordering, masses, constraints, virtual sites, and periodic box.
+- The test suite included here is non-OpenMM-only because this environment does not currently include OpenMM or sample AMBER systems.

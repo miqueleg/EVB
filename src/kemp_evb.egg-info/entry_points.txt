@@ -1,0 +1,2 @@
+[console_scripts]
+kemp-evb = kemp_evb.cli:main

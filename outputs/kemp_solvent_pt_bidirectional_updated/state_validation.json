@@ -1,0 +1,27 @@
+{
+  "compatible": true,
+  "state1_particles": 2597,
+  "state2_particles": 2597,
+  "state1_forces": [
+    "HarmonicBondForce",
+    "HarmonicAngleForce",
+    "PeriodicTorsionForce",
+    "NonbondedForce",
+    "CMMotionRemover"
+  ],
+  "state2_forces": [
+    "HarmonicBondForce",
+    "HarmonicAngleForce",
+    "PeriodicTorsionForce",
+    "NonbondedForce",
+    "CMMotionRemover"
+  ],
+  "periodic": true,
+  "has_reactive_atoms": true,
+  "label_mismatch_count": 23,
+  "mass_mismatch_count": 0,
+  "box_mismatch": false,
+  "notes": [
+    "Different residue labels or atom labels (23 mismatches)."
+  ]
+}

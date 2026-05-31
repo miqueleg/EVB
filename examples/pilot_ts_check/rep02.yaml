@@ -1,0 +1,78 @@
+project:
+  name: kemp-solvent-ts-check-rep02
+  output_dir: outputs/kemp_solvent_ts_check/rep02
+reaction:
+  metadata:
+    name: kemp_solvent_ts_check_rep02
+    phase: solution
+    temperature_k: 300.0
+    pressure_bar: 1.0
+    notes: Short CUDA pilot with restrained pre-equilibration to test whether proton transfer is sampled.
+  atoms:
+    donor: 6
+    proton: 15
+    acceptor: 19
+states:
+  state1:
+    topology: outputs/prepared_systems/kemp_solvent_boxsynced/RC.prmtop
+    coordinates: outputs/prepared_systems/kemp_solvent_boxsynced/RC.pdb
+    format: amber
+  state2:
+    topology: outputs/prepared_systems/kemp_solvent_boxsynced/PROD.prmtop
+    coordinates: outputs/prepared_systems/kemp_solvent_boxsynced/PROD.pdb
+    format: amber
+evb:
+  coupling_model:
+    model: constant
+    parameters:
+      delta_alpha_kj_mol: 0.0
+      h12_kj_mol: 20.0
+sampling:
+  mode: gap_umbrella
+  integrator:
+    name: LangevinMiddle
+    timestep_fs: 0.1
+    friction_per_ps: 1.0
+    seed: 7102
+  md:
+    equilibration_steps: 2000
+    production_steps: 4000
+    report_stride: 100
+    save_stride: null
+    platform: CUDA
+    temperature_k: 300.0
+    nonbonded_method: PME
+    constraints: None
+    minimize_steps: 200
+    minimize_tolerance: 10.0
+  equilibration_restraint:
+    enabled: true
+    atom1: 6
+    atom2: 19
+    target_distance_nm: 0.22
+    force_constant_kj_mol_nm2: 2092.0
+  windows:
+    gap_umbrella:
+      centers_kj_mol: [-42000.0, -41500.0, -41000.0, -40500.0, -40000.0, -39500.0, -39000.0, -38500.0, -38000.0, -37500.0, -37000.0, -36500.0, -36000.0, -35500.0, -35000.0, -34500.0, -34000.0, -33500.0, -33000.0, -32500.0, -32000.0, -31500.0, -31000.0, -30500.0, -30000.0, -29500.0, -29000.0, -28500.0, -28000.0, -27500.0, -27000.0, -26500.0, -26000.0, -25500.0, -25000.0, -24500.0, -24000.0, -23500.0, -23000.0, -22500.0, -22000.0, -21500.0, -21000.0, -20500.0, -20000.0, -19500.0, -19000.0, -18500.0, -18000.0, -17500.0]
+      force_constant_kj_mol2: 1.0e-7
+observables:
+  gap:
+    shifted: true
+  distances:
+    - name: donor_h
+      atom1: 6
+      atom2: 15
+    - name: h_acceptor
+      atom1: 15
+      atom2: 19
+analysis:
+  histogram:
+    bin_min_kj_mol: -60000.0
+    bin_max_kj_mol: 20000.0
+    n_bins: 320
+  pmf:
+    temperature_k: 300.0
+    zero_mode: reactant_min
+  barrier:
+    reactant_region: [-42000.0, -28000.0]
+    product_region: [-24000.0, -14000.0]

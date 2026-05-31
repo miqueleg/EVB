@@ -1,0 +1,13 @@
+{
+  "substrate": "5-nitro-1,2-benzisoxazole",
+  "solvent": "water",
+  "base": "acetate",
+  "barrier_kcal_mol": 23.8,
+  "barrier_source": "J. Phys. Chem. A 2020, search-result snippet for acetate + 5-nitrobenzisoxazole in water",
+  "barrier_note": "Use this as the primary aqueous reference for 5-nitrobenzisoxazole with acetate. This is the same substrate requested here.",
+  "secondary_barrier_kcal_mol": 21.2,
+  "secondary_source": "JACS 2008 / PMC2680199 Table 1 reference reaction with water cage (Asp/Glu surrogate)",
+  "secondary_note": "Related aqueous EVB-style reference used in Kemp enzyme benchmarking, but not the same acetate/5-nitrobenzisoxazole pairing.",
+  "rate_constant_m_inv_s_inv": 5.8e-05,
+  "rate_source": "JACS 2008 / PMC2680199 Table 1 cited experimental second-order rate constant in water"
+}

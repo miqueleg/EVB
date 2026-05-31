@@ -1,0 +1,92 @@
+project:
+  name: kemp-solution-baseline
+  output_dir: outputs/solution_kemp_baseline
+
+reaction:
+  metadata:
+    name: 5-nitrobenzisoxazole_acetate_water
+    phase: solution
+    temperature_k: 300.0
+    pressure_bar: 1.0
+    notes: Conventional EVB baseline around gap-based analysis.
+  atoms:
+    donor: 9
+    proton: 22
+    acceptor: 15
+  substrate_atoms: []
+  environment_atoms: []
+
+states:
+  state1:
+    topology: data/state1.prmtop
+    coordinates: data/state1.inpcrd
+    format: amber
+  state2:
+    topology: data/state2.prmtop
+    coordinates: data/state2.inpcrd
+    format: amber
+
+evb:
+  coupling_model:
+    model: constant
+    parameters:
+      delta_alpha_kj_mol: 0.0
+      h12_kj_mol: 0.0
+
+sampling:
+  mode: mapping
+  integrator:
+    name: LangevinMiddle
+    timestep_fs: 0.5
+    friction_per_ps: 1.0
+    seed: 2026
+  md:
+    equilibration_steps: 50000
+    production_steps: 200000
+    report_stride: 100
+    save_stride: 1000
+    platform: null
+    temperature_k: 300.0
+    nonbonded_method: PME
+    constraints: None
+    minimize_steps: 500
+    minimize_tolerance: 10.0
+  windows:
+    mapping:
+      lambda_values: [0.0, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90, 0.95, 1.0]
+
+observables:
+  gap:
+    shifted: true
+  distances:
+    - name: donor_h
+      atom1: 9
+      atom2: 22
+    - name: h_acceptor
+      atom1: 22
+      atom2: 15
+
+analysis:
+  histogram:
+    bin_min_kj_mol: -200.0
+    bin_max_kj_mol: 200.0
+    n_bins: 200
+  pmf:
+    temperature_k: 300.0
+    zero_mode: reactant_min
+  barrier:
+    reactant_region: [-150.0, -25.0]
+    product_region: [25.0, 150.0]
+  uncertainty:
+    blocks: 5
+    bootstrap_samples: 200
+
+fit:
+  bootstrap_targets:
+    reaction_free_energy_kj_mol: null
+    barrier_kj_mol: null
+    source_label: null
+  ensemble_targets:
+    reaction_free_energy_kj_mol: null
+    barrier_kj_mol: null
+    source_label: experiment

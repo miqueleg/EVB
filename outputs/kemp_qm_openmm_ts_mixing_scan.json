@@ -1,0 +1,65 @@
+[
+  {
+    "ts_mixing_weight": 1.0,
+    "delta_alpha_kj_mol": -53353.839656333774,
+    "h12_kj_mol": 49623.68578350022,
+    "fitted_barrier_kj_mol": 74.6445448382292,
+    "fitted_reaction_free_energy_kj_mol": -154.59284957055934,
+    "ts_weight2": 0.8750758316725776,
+    "objective_value": 0.3135082659929692
+  },
+  {
+    "ts_mixing_weight": 10.0,
+    "delta_alpha_kj_mol": -53353.839656333774,
+    "h12_kj_mol": 49623.68578350022,
+    "fitted_barrier_kj_mol": 74.6445448382292,
+    "fitted_reaction_free_energy_kj_mol": -154.59284957055934,
+    "ts_weight2": 0.8750758316725776,
+    "objective_value": 1.5796451815368513
+  },
+  {
+    "ts_mixing_weight": 100.0,
+    "delta_alpha_kj_mol": -53353.839656333774,
+    "h12_kj_mol": 49623.68578350022,
+    "fitted_barrier_kj_mol": 74.6445448382292,
+    "fitted_reaction_free_energy_kj_mol": -154.59284957055934,
+    "ts_weight2": 0.8750758316725776,
+    "objective_value": 14.241014336975672
+  },
+  {
+    "ts_mixing_weight": 1000.0,
+    "delta_alpha_kj_mol": -53353.839656333774,
+    "h12_kj_mol": 49623.68578350022,
+    "fitted_barrier_kj_mol": 74.6445448382292,
+    "fitted_reaction_free_energy_kj_mol": -154.59284957055934,
+    "ts_weight2": 0.8750758316725776,
+    "objective_value": 140.85470589136386
+  },
+  {
+    "ts_mixing_weight": 10000.0,
+    "delta_alpha_kj_mol": -53353.839656333774,
+    "h12_kj_mol": 49623.68578350022,
+    "fitted_barrier_kj_mol": 74.6445448382292,
+    "fitted_reaction_free_energy_kj_mol": -154.59284957055934,
+    "ts_weight2": 0.8750758316725776,
+    "objective_value": 1406.991621435246
+  },
+  {
+    "ts_mixing_weight": 100000.0,
+    "delta_alpha_kj_mol": -53353.839656333774,
+    "h12_kj_mol": 49623.68578350022,
+    "fitted_barrier_kj_mol": 74.6445448382292,
+    "fitted_reaction_free_energy_kj_mol": -154.59284957055934,
+    "ts_weight2": 0.8750758316725776,
+    "objective_value": 14068.360776874068
+  },
+  {
+    "ts_mixing_weight": 1000000.0,
+    "delta_alpha_kj_mol": -53413.26328964402,
+    "h12_kj_mol": 49663.301539040396,
+    "fitted_barrier_kj_mol": 71.37496311396535,
+    "fitted_reaction_free_energy_kj_mol": -151.39566384642967,
+    "ts_weight2": 0.8750314878549451,
+    "objective_value": 140666.73680144706
+  }
+]

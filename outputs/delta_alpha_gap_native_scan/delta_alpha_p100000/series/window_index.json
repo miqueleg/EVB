@@ -1,0 +1,178 @@
+[
+  {
+    "window_id": "u000",
+    "gap_center_kj_mol": -50000.0,
+    "force_constant_kj_mol2": 1e-09,
+    "n_frames": 10,
+    "final_step": 1200,
+    "final_time_ps": 0.12,
+    "proton_transfer_rc_min_nm": -0.16346350196530163,
+    "proton_transfer_rc_max_nm": -0.11478205875099348,
+    "proton_transfer_positive_frames": 0,
+    "reaction_coordinate_ranges_nm": {
+      "proton_transfer_rc": [
+        -0.16346350196530163,
+        -0.11478205875099348
+      ],
+      "ring_opening_rc": [
+        0.14169929810228044,
+        0.15299690307544014
+      ]
+    },
+    "output_dir": "outputs/delta_alpha_gap_native_scan/delta_alpha_p100000/windows/u000"
+  },
+  {
+    "window_id": "u001",
+    "gap_center_kj_mol": -25000.0,
+    "force_constant_kj_mol2": 1e-09,
+    "n_frames": 10,
+    "final_step": 1200,
+    "final_time_ps": 0.12,
+    "proton_transfer_rc_min_nm": -0.15897939441736672,
+    "proton_transfer_rc_max_nm": -0.13442267936125307,
+    "proton_transfer_positive_frames": 0,
+    "reaction_coordinate_ranges_nm": {
+      "proton_transfer_rc": [
+        -0.15897939441736672,
+        -0.13442267936125307
+      ],
+      "ring_opening_rc": [
+        0.13825505550911085,
+        0.15410415950264278
+      ]
+    },
+    "output_dir": "outputs/delta_alpha_gap_native_scan/delta_alpha_p100000/windows/u001"
+  },
+  {
+    "window_id": "u002",
+    "gap_center_kj_mol": 0.0,
+    "force_constant_kj_mol2": 1e-09,
+    "n_frames": 10,
+    "final_step": 1200,
+    "final_time_ps": 0.12,
+    "proton_transfer_rc_min_nm": -0.16130162489271266,
+    "proton_transfer_rc_max_nm": -0.1394163176183918,
+    "proton_transfer_positive_frames": 0,
+    "reaction_coordinate_ranges_nm": {
+      "proton_transfer_rc": [
+        -0.16130162489271266,
+        -0.1394163176183918
+      ],
+      "ring_opening_rc": [
+        0.14447031855535816,
+        0.15244317525076395
+      ]
+    },
+    "output_dir": "outputs/delta_alpha_gap_native_scan/delta_alpha_p100000/windows/u002"
+  },
+  {
+    "window_id": "u003",
+    "gap_center_kj_mol": 25000.0,
+    "force_constant_kj_mol2": 1e-09,
+    "n_frames": 10,
+    "final_step": 1200,
+    "final_time_ps": 0.12,
+    "proton_transfer_rc_min_nm": -0.17302534912248432,
+    "proton_transfer_rc_max_nm": -0.14486330508844564,
+    "proton_transfer_positive_frames": 0,
+    "reaction_coordinate_ranges_nm": {
+      "proton_transfer_rc": [
+        -0.17302534912248432,
+        -0.14486330508844564
+      ],
+      "ring_opening_rc": [
+        0.14060484606897017,
+        0.15304279348750496
+      ]
+    },
+    "output_dir": "outputs/delta_alpha_gap_native_scan/delta_alpha_p100000/windows/u003"
+  },
+  {
+    "window_id": "u004",
+    "gap_center_kj_mol": 50000.0,
+    "force_constant_kj_mol2": 1e-09,
+    "n_frames": 10,
+    "final_step": 1200,
+    "final_time_ps": 0.12,
+    "proton_transfer_rc_min_nm": -0.17867922141526157,
+    "proton_transfer_rc_max_nm": -0.13691340633384244,
+    "proton_transfer_positive_frames": 0,
+    "reaction_coordinate_ranges_nm": {
+      "proton_transfer_rc": [
+        -0.17867922141526157,
+        -0.13691340633384244
+      ],
+      "ring_opening_rc": [
+        0.14451924641709726,
+        0.15237478402812527
+      ]
+    },
+    "output_dir": "outputs/delta_alpha_gap_native_scan/delta_alpha_p100000/windows/u004"
+  },
+  {
+    "window_id": "u005",
+    "gap_center_kj_mol": 100000.0,
+    "force_constant_kj_mol2": 1e-09,
+    "n_frames": 10,
+    "final_step": 1200,
+    "final_time_ps": 0.12,
+    "proton_transfer_rc_min_nm": 0.18988832806613692,
+    "proton_transfer_rc_max_nm": 0.21302511573565647,
+    "proton_transfer_positive_frames": 10,
+    "reaction_coordinate_ranges_nm": {
+      "proton_transfer_rc": [
+        0.18988832806613692,
+        0.21302511573565647
+      ],
+      "ring_opening_rc": [
+        0.3520907029466559,
+        0.3614552549082728
+      ]
+    },
+    "output_dir": "outputs/delta_alpha_gap_native_scan/delta_alpha_p100000/windows/u005"
+  },
+  {
+    "window_id": "u006",
+    "gap_center_kj_mol": 175000.0,
+    "force_constant_kj_mol2": 1e-09,
+    "n_frames": 10,
+    "final_step": 1200,
+    "final_time_ps": 0.12,
+    "proton_transfer_rc_min_nm": 0.19709471298839445,
+    "proton_transfer_rc_max_nm": 0.20664065532473408,
+    "proton_transfer_positive_frames": 10,
+    "reaction_coordinate_ranges_nm": {
+      "proton_transfer_rc": [
+        0.19709471298839445,
+        0.20664065532473408
+      ],
+      "ring_opening_rc": [
+        0.35202889814436067,
+        0.3613221566558053
+      ]
+    },
+    "output_dir": "outputs/delta_alpha_gap_native_scan/delta_alpha_p100000/windows/u006"
+  },
+  {
+    "window_id": "u007",
+    "gap_center_kj_mol": 250000.0,
+    "force_constant_kj_mol2": 1e-09,
+    "n_frames": 10,
+    "final_step": 1200,
+    "final_time_ps": 0.12,
+    "proton_transfer_rc_min_nm": 0.201283823081279,
+    "proton_transfer_rc_max_nm": 0.21435477473677345,
+    "proton_transfer_positive_frames": 10,
+    "reaction_coordinate_ranges_nm": {
+      "proton_transfer_rc": [
+        0.201283823081279,
+        0.21435477473677345
+      ],
+      "ring_opening_rc": [
+        0.35198375608034743,
+        0.35610748354960586
+      ]
+    },
+    "output_dir": "outputs/delta_alpha_gap_native_scan/delta_alpha_p100000/windows/u007"
+  }
+]

@@ -1,0 +1,26 @@
+{
+  "gap": {
+    "frame": 0,
+    "step": 0,
+    "time_ps": 0.0,
+    "energy1_kj_mol": -31845.753465639362,
+    "energy2_kj_mol": -1030.620364762985,
+    "delta_e_kj_mol": -30815.133100876377,
+    "delta_e_shifted_kj_mol": -30815.133100876377,
+    "evb_energy_kj_mol": -31845.766431010255,
+    "weight1": 0.9999995787583098,
+    "weight2": 4.212416901960836e-07
+  },
+  "distances_nm": {
+    "donor_h": 0.10640512205716388,
+    "h_acceptor": 0.215398607237837
+  },
+  "reaction_coordinates_nm": {
+    "proton_transfer_rc": -0.10899348518067312,
+    "ring_opening_rc": 0.14415363332223055
+  },
+  "parameters": {
+    "delta_alpha": 0.0,
+    "h12": 20.0
+  }
+}
