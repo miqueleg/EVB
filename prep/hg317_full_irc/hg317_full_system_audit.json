@@ -1,0 +1,93 @@
+{
+  "state1": {
+    "path": "prep/hg317_full_irc/state1_reactant.prmtop",
+    "exists": true,
+    "atom_count": 32777,
+    "residue_count": 9710,
+    "residue_counts": {
+      "GLN": 18,
+      "SER": 18,
+      "ILE": 19,
+      "ASP": 18,
+      "LEU": 23,
+      "LYS": 13,
+      "ALA": 33,
+      "ARG": 8,
+      "GLY": 24,
+      "VAL": 25,
+      "TYR": 9,
+      "PHE": 11,
+      "THR": 16,
+      "ASN": 23,
+      "MET": 8,
+      "TRP": 7,
+      "PRO": 14,
+      "GLU": 7,
+      "CYS": 3,
+      "HIS": 3,
+      "SBR": 1,
+      "Na+": 3,
+      "HOH": 9406
+    },
+    "ligand_residues": [
+      {
+        "index": 300,
+        "name": "SBR",
+        "atom_count": 16
+      }
+    ],
+    "total_mass_amu": 202163.692
+  },
+  "state2": {
+    "path": "prep/hg317_full_irc/state2_product.prmtop",
+    "exists": true,
+    "atom_count": 32774,
+    "residue_count": 9710,
+    "residue_counts": {
+      "GLN": 18,
+      "SER": 18,
+      "ILE": 19,
+      "ASP": 18,
+      "LEU": 23,
+      "LYS": 13,
+      "ALA": 33,
+      "ARG": 8,
+      "GLY": 24,
+      "VAL": 25,
+      "TYR": 9,
+      "PHE": 11,
+      "THR": 16,
+      "ASN": 23,
+      "MET": 8,
+      "TRP": 7,
+      "PRO": 14,
+      "GLU": 7,
+      "CYS": 3,
+      "HIS": 3,
+      "SDP": 1,
+      "Na+": 4,
+      "HOH": 9405
+    },
+    "ligand_residues": [
+      {
+        "index": 300,
+        "name": "SDP",
+        "atom_count": 15
+      }
+    ],
+    "total_mass_amu": 202167.658
+  },
+  "plain_initial_energies_kj_mol": {
+    "state1": {
+      "initial_potential_kj_mol": -359463.07663992484,
+      "minimized_potential_kj_mol": -392577.0776617106
+    },
+    "state2": {
+      "initial_potential_kj_mol": -359620.4756826708,
+      "minimized_potential_kj_mol": -393005.6810742936
+    }
+  },
+  "evb_compatible": false,
+  "compatibility_error": "State 1 and state 2 have different atom counts.",
+  "required_next_step": "Build matched reactant/product diabatic topologies with identical atom count, atom order, masses, constraints, virtual sites, and periodic box. The current draft systems differ because the transferred proton is part of the substrate-like ligand in state 1 but not in the product-like GAFF2 ligand in state 2."
+}

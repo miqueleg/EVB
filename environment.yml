@@ -1,0 +1,15 @@
+name: openmm-evb
+channels:
+  - conda-forge
+dependencies:
+  - python>=3.10
+  - numpy
+  - pyyaml
+  - openmm
+  - pytest
+  - pandas
+  - matplotlib
+  - pymbar
+  - pip
+  - pip:
+      - -e .

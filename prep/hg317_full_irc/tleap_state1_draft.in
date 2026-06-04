@@ -1,0 +1,14 @@
+source leaprc.protein.ff14SB
+source leaprc.gaff2
+source leaprc.water.tip3p
+loadamberparams state1_reactant_ligand.frcmod
+lig = loadmol2 state1_reactant_ligand.mol2
+prot = loadpdb 5RGE_clean_active_site_waters_noH.pdb
+model = combine {prot lig}
+check model
+solvatebox model TIP3PBOX 10.0
+addions model Na+ 0
+addions model Cl- 0
+saveamberparm model state1_reactant.prmtop state1_reactant.inpcrd
+savepdb model state1_reactant_solvated.pdb
+quit

@@ -1,0 +1,34 @@
+project:
+  name: plumed-geometric-opes
+  output_dir: outputs/plumed_opes
+states:
+  state1:
+    topology: path/to/state1.prmtop
+    coordinates: path/to/state1.inpcrd
+  state2:
+    topology: path/to/state2.prmtop
+    coordinates: path/to/state2.inpcrd
+evb:
+  coupling_model:
+    model: constant
+    parameters:
+      delta_alpha_kj_mol: 0.0
+      h12_kj_mol: 10.0
+sampling:
+  mode: mapping
+  md:
+    production_steps: 100000
+    report_stride: 100
+  windows:
+    mapping:
+      lambda_values: [0.5]
+plumed:
+  enabled: true
+  restart: true
+  output_colvar: COLVAR
+  script: |
+    # PLUMED atom indices are 1-based. This biases geometrical CVs, not the EVB energy gap.
+    d_break: DISTANCE ATOMS=1,2
+    d_form: DISTANCE ATOMS=2,3
+    OPES_METAD ARG=d_break,d_form PACE=500 SIGMA=0.02,0.02 BARRIER=40 TEMP=300 STATE_WFILE=STATE STATE_WSTRIDE=1000 KERNELS=KERNELS
+    PRINT ARG=d_break,d_form,opes.bias FILE=COLVAR STRIDE=100

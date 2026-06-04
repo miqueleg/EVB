@@ -1,0 +1,38 @@
+project:
+  name: enzyme-evb
+  output_dir: outputs/enzyme
+reaction:
+  metadata:
+    name: generic_enzyme_reaction
+    phase: enzyme
+    temperature_k: 300.0
+  substrate_atoms: []
+  environment_atoms: []
+states:
+  state1:
+    topology: path/to/enzyme_state1.prmtop
+    coordinates: path/to/enzyme_state1.inpcrd
+  state2:
+    topology: path/to/enzyme_state2.prmtop
+    coordinates: path/to/enzyme_state2.inpcrd
+evb:
+  coupling_model:
+    model: constant
+    parameters:
+      delta_alpha_kj_mol: 0.0
+      h12_kj_mol: 10.0
+sampling:
+  mode: mapping
+  production_restraint:
+    enabled: true
+    substrate_com_atoms: []
+    substrate_com_force_constant_kj_mol_nm2: 1000.0
+  md:
+    production_steps: 100000
+    report_stride: 100
+  windows:
+    mapping:
+      lambda_values: [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+observables:
+  gap:
+    shifted: true

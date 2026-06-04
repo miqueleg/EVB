@@ -1,0 +1,21 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/mestevez/Projects/EVB/EVB/src/evb/cli.py", line 4, in <module>
+    main()
+  File "/home/mestevez/Projects/EVB/EVB/src/kemp_evb/cli.py", line 96, in main
+    run_sample_series(config)
+  File "/home/mestevez/Projects/EVB/EVB/src/kemp_evb/cli.py", line 297, in run_sample_series
+    run_mapping_series(config)
+  File "/home/mestevez/Projects/EVB/EVB/src/kemp_evb/sampling/runners.py", line 339, in run_mapping_series
+    summary = runner.run(output_root)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mestevez/Projects/EVB/EVB/src/kemp_evb/sampling/runners.py", line 148, in run
+    frames = self._collect_production(context, integrator, mapped_system, window_dir)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mestevez/Projects/EVB/EVB/src/kemp_evb/sampling/runners.py", line 246, in _collect_production
+    integrator.step(advance)
+  File "/home/mestevez/.local/share/mamba/envs/openmm-evb-cuda124/lib/python3.12/site-packages/openmm/openmm.py", line 3268, in step
+    return _openmm.LangevinMiddleIntegrator_step(self, steps)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt

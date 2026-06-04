@@ -1,0 +1,16 @@
+Matched EVB product-state ASP127-OD2--H197 parameters
+MASS
+
+BOND
+O2-ho  553.0  0.960  adapted from hydroxyl O-H for matched EVB ASP127-H197 topology
+
+ANGLE
+CO-O2-ho   50.0  113.00  adapted from carboxylic-acid C-O-H angle
+
+DIHE
+2C-CO-O2-ho   1    0.000      0.0    3.0  reactive-region matched topology placeholder
+O2-CO-O2-ho   1    0.000    180.0    2.0  reactive-region matched topology placeholder
+
+IMPROPER
+
+NONBON

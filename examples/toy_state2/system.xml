@@ -1,0 +1,20 @@
+<?xml version="1.0" ?>
+<System openmmVersion="8.4" type="System" version="1">
+	<PeriodicBoxVectors>
+		<A x="2" y="0" z="0"/>
+		<B x="0" y="2" z="0"/>
+		<C x="0" y="0" z="2"/>
+	</PeriodicBoxVectors>
+	<Particles>
+		<Particle mass="12"/>
+		<Particle mass="12"/>
+	</Particles>
+	<Constraints/>
+	<Forces>
+		<Force forceGroup="0" name="HarmonicBondForce" type="HarmonicBondForce" usesPeriodic="0" version="2">
+			<Bonds>
+				<Bond d=".14" k="1000" p1="0" p2="1"/>
+			</Bonds>
+		</Force>
+	</Forces>
+</System>

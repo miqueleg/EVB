@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 
 from kemp_evb.evb import EVBParameters, EVBHamiltonian, calibrate_evb_parameters
+from kemp_evb.evb_core import diabatic_gap, evb_energy, evb_weights
 from kemp_evb.cv import proton_transfer_coordinate
 
 
@@ -12,6 +13,20 @@ def test_evb_combination_returns_consistent_weights_and_energy():
     assert result.evb_energy < min(result.energy1, result.e2_shifted)
     assert np.isclose(result.weight1 + result.weight2, 1.0)
     assert np.allclose(result.forces, np.array([[result.weight1, result.weight2, 0.0]]))
+
+
+def test_general_evb_core_helpers_and_finite_difference_weights():
+    e1 = 12.0
+    e2 = 8.0
+    delta_alpha = 1.5
+    h12 = 3.0
+    eps = 1.0e-5
+    weight1, weight2 = evb_weights(e1, e2, delta_alpha, h12)
+    d_de1 = (evb_energy(e1 + eps, e2, delta_alpha, h12) - evb_energy(e1 - eps, e2, delta_alpha, h12)) / (2 * eps)
+    d_de2 = (evb_energy(e1, e2 + eps, delta_alpha, h12) - evb_energy(e1, e2 - eps, delta_alpha, h12)) / (2 * eps)
+    assert np.isclose(diabatic_gap(e1, e2, delta_alpha), 2.5)
+    assert np.isclose(weight1, d_de1)
+    assert np.isclose(weight2, d_de2)
 
 
 def test_calibration_produces_barrier_consistent_parameters():

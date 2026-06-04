@@ -4,7 +4,7 @@ channels:
 dependencies:
   - python=3.11
   - openmm
-  - cuda-version=13.0
+  - cuda-version=12.8
   - numpy
   - pytest
   - pip

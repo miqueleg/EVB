@@ -84,6 +84,7 @@ class EVBOpenMMSystem:
     umbrella_force: Any | None = None
     equilibration_restraint_force: Any | None = None
     production_restraint_force: Any | None = None
+    far_field_restraint_force: Any | None = None
 
 
 @dataclass(slots=True)
@@ -98,6 +99,7 @@ class MappedOpenMMSystem:
     state2_force: Any
     equilibration_restraint_force: Any | None = None
     production_restraint_force: Any | None = None
+    far_field_restraint_force: Any | None = None
 
 
 class OpenMMStateEvaluator:
@@ -216,6 +218,9 @@ class EVBSystemBuilder:
             raise ValueError("State 1 and state 2 atom names/order differ.")
         if (state1.box_vectors_nm is None) != (state2.box_vectors_nm is None):
             raise ValueError("Only one state defines periodic box vectors.")
+        if state1.box_vectors_nm is not None and state2.box_vectors_nm is not None:
+            if not np.allclose(state1.box_vectors_nm, state2.box_vectors_nm, atol=1.0e-8):
+                raise ValueError("State 1 and state 2 periodic box vectors differ.")
         _validate_constraints(state1.system, state2.system)
         _validate_virtual_sites(state1.system, state2.system)
 
@@ -227,13 +232,15 @@ class EVBSystemBuilder:
         h12: float,
         equilibration_restraint: tuple[int, int, float, float] | None = None,
         substrate_com_restraint: tuple[list[int], float] | None = None,
+        far_field_restraint: tuple[list[int], np.ndarray, float] | None = None,
+        unconstrained_atoms: set[int] | None = None,
         add_cmmotion_remover: bool = True,
     ) -> EVBOpenMMSystem:
         self.validate_compatibility(state1, state2)
         system = openmm.System()
         for index in range(state1.system.getNumParticles()):
             system.addParticle(state1.system.getParticleMass(index))
-        _copy_constraints(state1.system, system)
+        _copy_constraints(state1.system, system, skip_atoms=unconstrained_atoms)
         _copy_virtual_sites(state1.system, system)
         if state1.box_vectors_nm is not None:
             system.setDefaultPeriodicBoxVectors(*_to_box_vectors(state1.box_vectors_nm))
@@ -261,6 +268,10 @@ class EVBSystemBuilder:
                 substrate_com_restraint[1],
             )
             system.addForce(production_restraint_force)
+        far_field_restraint_force = None
+        if far_field_restraint is not None:
+            far_field_restraint_force = _build_positional_restraint_force(*far_field_restraint)
+            system.addForce(far_field_restraint_force)
 
         if add_cmmotion_remover and _has_cmmotion_remover(state1.system):
             system.addForce(openmm.CMMotionRemover())
@@ -277,6 +288,7 @@ class EVBSystemBuilder:
             umbrella_force=None,
             equilibration_restraint_force=restraint_force,
             production_restraint_force=production_restraint_force,
+            far_field_restraint_force=far_field_restraint_force,
         )
 
     def build_openmm_gap_umbrella_system(
@@ -289,13 +301,15 @@ class EVBSystemBuilder:
         gap_force_constant: float,
         equilibration_restraint: tuple[int, int, float, float] | None = None,
         substrate_com_restraint: tuple[list[int], float] | None = None,
+        far_field_restraint: tuple[list[int], np.ndarray, float] | None = None,
+        unconstrained_atoms: set[int] | None = None,
         add_cmmotion_remover: bool = True,
     ) -> EVBOpenMMSystem:
         self.validate_compatibility(state1, state2)
         system = openmm.System()
         for index in range(state1.system.getNumParticles()):
             system.addParticle(state1.system.getParticleMass(index))
-        _copy_constraints(state1.system, system)
+        _copy_constraints(state1.system, system, skip_atoms=unconstrained_atoms)
         _copy_virtual_sites(state1.system, system)
         if state1.box_vectors_nm is not None:
             system.setDefaultPeriodicBoxVectors(*_to_box_vectors(state1.box_vectors_nm))
@@ -304,22 +318,15 @@ class EVBSystemBuilder:
         state2_force = _build_state_energy_force(state2.system, "s2")
         evb_force = openmm.CustomCVForce(
             "0.5*(e1 + e2 + delta_alpha) - sqrt(0.25*(e1 - e2 - delta_alpha)^2 + h12^2)"
+            " + 0.5*k_gap*((e1 - e2 - delta_alpha)-gap_center)^2"
         )
         evb_force.addCollectiveVariable("e1", state1_force)
         evb_force.addCollectiveVariable("e2", state2_force)
         evb_force.addGlobalParameter("delta_alpha", delta_alpha)
         evb_force.addGlobalParameter("h12", h12)
+        evb_force.addGlobalParameter("k_gap", gap_force_constant)
+        evb_force.addGlobalParameter("gap_center", gap_center)
         system.addForce(evb_force)
-
-        umbrella_force = openmm.CustomCVForce("0.5*k_gap*(gap_shifted-gap_center)^2")
-        gap_cv = openmm.CustomCVForce("e1 - e2 - delta_alpha")
-        gap_cv.addCollectiveVariable("e1", _clone_openmm_object(state1_force))
-        gap_cv.addCollectiveVariable("e2", _clone_openmm_object(state2_force))
-        gap_cv.addGlobalParameter("delta_alpha", delta_alpha)
-        umbrella_force.addCollectiveVariable("gap_shifted", gap_cv)
-        umbrella_force.addGlobalParameter("k_gap", gap_force_constant)
-        umbrella_force.addGlobalParameter("gap_center", gap_center)
-        system.addForce(umbrella_force)
         restraint_force = None
         if equilibration_restraint is not None:
             restraint_force = _build_distance_restraint_force(*equilibration_restraint)
@@ -333,6 +340,10 @@ class EVBSystemBuilder:
                 substrate_com_restraint[1],
             )
             system.addForce(production_restraint_force)
+        far_field_restraint_force = None
+        if far_field_restraint is not None:
+            far_field_restraint_force = _build_positional_restraint_force(*far_field_restraint)
+            system.addForce(far_field_restraint_force)
 
         if add_cmmotion_remover and _has_cmmotion_remover(state1.system):
             system.addForce(openmm.CMMotionRemover())
@@ -346,9 +357,10 @@ class EVBSystemBuilder:
             evb_force=evb_force,
             state1_force=state1_force,
             state2_force=state2_force,
-            umbrella_force=umbrella_force,
+            umbrella_force=evb_force,
             equilibration_restraint_force=restraint_force,
             production_restraint_force=production_restraint_force,
+            far_field_restraint_force=far_field_restraint_force,
         )
 
     def build_openmm_proton_transfer_umbrella_system(
@@ -364,13 +376,15 @@ class EVBSystemBuilder:
         rc_force_constant_kj_mol_nm2: float,
         equilibration_restraint: tuple[int, int, float, float] | None = None,
         substrate_com_restraint: tuple[list[int], float] | None = None,
+        far_field_restraint: tuple[list[int], np.ndarray, float] | None = None,
+        unconstrained_atoms: set[int] | None = None,
         add_cmmotion_remover: bool = True,
     ) -> EVBOpenMMSystem:
         self.validate_compatibility(state1, state2)
         system = openmm.System()
         for index in range(state1.system.getNumParticles()):
             system.addParticle(state1.system.getParticleMass(index))
-        _copy_constraints(state1.system, system)
+        _copy_constraints(state1.system, system, skip_atoms=unconstrained_atoms)
         _copy_virtual_sites(state1.system, system)
         if state1.box_vectors_nm is not None:
             system.setDefaultPeriodicBoxVectors(*_to_box_vectors(state1.box_vectors_nm))
@@ -406,6 +420,10 @@ class EVBSystemBuilder:
                 substrate_com_restraint[1],
             )
             system.addForce(production_restraint_force)
+        far_field_restraint_force = None
+        if far_field_restraint is not None:
+            far_field_restraint_force = _build_positional_restraint_force(*far_field_restraint)
+            system.addForce(far_field_restraint_force)
 
         if add_cmmotion_remover and _has_cmmotion_remover(state1.system):
             system.addForce(openmm.CMMotionRemover())
@@ -422,6 +440,7 @@ class EVBSystemBuilder:
             umbrella_force=umbrella_force,
             equilibration_restraint_force=restraint_force,
             production_restraint_force=production_restraint_force,
+            far_field_restraint_force=far_field_restraint_force,
         )
 
     def build_openmm_mapped_system(
@@ -432,13 +451,15 @@ class EVBSystemBuilder:
         delta_alpha: float,
         equilibration_restraint: tuple[int, int, float, float] | None = None,
         substrate_com_restraint: tuple[list[int], float] | None = None,
+        far_field_restraint: tuple[list[int], np.ndarray, float] | None = None,
+        unconstrained_atoms: set[int] | None = None,
         add_cmmotion_remover: bool = True,
     ) -> MappedOpenMMSystem:
         self.validate_compatibility(state1, state2)
         system = openmm.System()
         for index in range(state1.system.getNumParticles()):
             system.addParticle(state1.system.getParticleMass(index))
-        _copy_constraints(state1.system, system)
+        _copy_constraints(state1.system, system, skip_atoms=unconstrained_atoms)
         _copy_virtual_sites(state1.system, system)
         if state1.box_vectors_nm is not None:
             system.setDefaultPeriodicBoxVectors(*_to_box_vectors(state1.box_vectors_nm))
@@ -464,6 +485,10 @@ class EVBSystemBuilder:
                 substrate_com_restraint[1],
             )
             system.addForce(production_restraint_force)
+        far_field_restraint_force = None
+        if far_field_restraint is not None:
+            far_field_restraint_force = _build_positional_restraint_force(*far_field_restraint)
+            system.addForce(far_field_restraint_force)
 
         if add_cmmotion_remover and _has_cmmotion_remover(state1.system):
             system.addForce(openmm.CMMotionRemover())
@@ -479,6 +504,7 @@ class EVBSystemBuilder:
             state2_force=state2_force,
             equilibration_restraint_force=restraint_force,
             production_restraint_force=production_restraint_force,
+            far_field_restraint_force=far_field_restraint_force,
         )
 
 
@@ -516,6 +542,35 @@ def _build_centroid_restraint_force(
     return force
 
 
+def _build_positional_restraint_force(
+    atom_indices: list[int],
+    reference_positions_nm: np.ndarray,
+    force_constant_kj_mol_nm2: float,
+    parameter_name: str = "k_pos",
+):
+    if not atom_indices:
+        raise ValueError("Positional restraint requires at least one atom index.")
+    force = openmm.CustomExternalForce(f"0.5*{parameter_name}*((x-x0)^2 + (y-y0)^2 + (z-z0)^2)")
+    force.addGlobalParameter(parameter_name, force_constant_kj_mol_nm2)
+    for parameter in ("x0", "y0", "z0"):
+        force.addPerParticleParameter(parameter)
+    for atom_index in atom_indices:
+        position = reference_positions_nm[atom_index]
+        force.addParticle(atom_index, [float(position[0]), float(position[1]), float(position[2])])
+    return force
+
+
+def build_absolute_positional_restraint_force(
+    reference_positions_nm: np.ndarray,
+    atom_indices: list[int] | None = None,
+    force_constant_kj_mol_nm2: float = 250.0,
+    parameter_name: str = "k_pos",
+):
+    _require_openmm()
+    indices = list(range(len(reference_positions_nm))) if atom_indices is None else list(atom_indices)
+    return _build_positional_restraint_force(indices, reference_positions_nm, force_constant_kj_mol_nm2, parameter_name=parameter_name)
+
+
 def load_positions_file(path: str) -> np.ndarray:
     _require_openmm()
     positions_nm, _ = _load_positions_and_box(path)
@@ -531,6 +586,40 @@ def write_openmm_bundle(path: str | Path, system: Any, topology: Any, positions_
         if box_vectors_nm is not None:
             topology.setPeriodicBoxVectors(tuple(openmm.Vec3(*box_vectors_nm[i]) for i in range(3)))
         PDBFile.writeFile(topology, _to_openmm_positions(positions_nm), handle)
+
+
+def write_toy_evb_bundles(base_dir: str | Path) -> None:
+    """Write a two-state harmonic-bond toy system for examples and tests."""
+    _require_openmm()
+    from openmm.app import Topology, element
+
+    base_path = Path(base_dir)
+
+    def make_topology():
+        topology = Topology()
+        chain = topology.addChain("A")
+        residue = topology.addResidue("MOL", chain)
+        topology.addAtom("A1", element.carbon, residue)
+        topology.addAtom("A2", element.carbon, residue)
+        return topology
+
+    def make_system(r0_nm: float):
+        system = openmm.System()
+        for _ in range(2):
+            system.addParticle(12.0 * unit.amu)
+        bond_force = openmm.HarmonicBondForce()
+        bond_force.addBond(
+            0,
+            1,
+            r0_nm * unit.nanometer,
+            1000.0 * unit.kilojoule_per_mole / unit.nanometer**2,
+        )
+        system.addForce(bond_force)
+        return system
+
+    positions_nm = np.asarray([[0.0, 0.0, 0.0], [0.18, 0.0, 0.0]], dtype=float)
+    write_openmm_bundle(base_path / "toy_state1", make_system(0.12), make_topology(), positions_nm)
+    write_openmm_bundle(base_path / "toy_state2", make_system(0.14), make_topology(), positions_nm)
 
 
 def write_pdb(path: str, topology: Any, positions_nm: np.ndarray) -> None:
@@ -607,9 +696,12 @@ def _validate_constraints(system1: Any, system2: Any) -> None:
             raise ValueError("State 1 and state 2 constraint distances differ.")
 
 
-def _copy_constraints(source: Any, target: Any) -> None:
+def _copy_constraints(source: Any, target: Any, skip_atoms: set[int] | None = None) -> None:
+    skip_atoms = skip_atoms or set()
     for index in range(source.getNumConstraints()):
         particle1, particle2, distance = source.getConstraintParameters(index)
+        if particle1 in skip_atoms or particle2 in skip_atoms:
+            continue
         target.addConstraint(particle1, particle2, distance)
 
 

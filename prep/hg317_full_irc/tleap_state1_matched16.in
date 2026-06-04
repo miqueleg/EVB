@@ -1,0 +1,13 @@
+source leaprc.protein.ff14SB
+source leaprc.gaff2
+source leaprc.water.tip3p
+loadamberparams state1_reactant_ligand.frcmod
+lig = loadmol2 state1_reactant_ligand.mol2
+prot = loadpdb 5RGE_clean_active_site_waters_noH.pdb
+solv = loadpdb state1_solvent_ions_template.pdb
+model = combine {prot lig solv}
+check model
+set model box {85.234868 65.595866 73.747658}
+saveamberparm model state1_reactant_matched16.prmtop state1_reactant_matched16.inpcrd
+savepdb model state1_reactant_matched16.pdb
+quit

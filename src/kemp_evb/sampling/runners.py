@@ -10,7 +10,15 @@ from ..config import EVBConfig
 from ..evb import EVBHamiltonian, EVBParameters, EVBResult
 from ..io import write_json
 from ..observables import compute_named_distances, compute_named_reaction_coordinates, make_gap_sample
-from ..openmm_backend import AmberSystemLoader, EVBOpenMMSystem, EVBSystemBuilder, MappedOpenMMSystem, load_positions_file, write_pdb
+from ..openmm_backend import (
+    AmberSystemLoader,
+    EVBOpenMMSystem,
+    EVBSystemBuilder,
+    MappedOpenMMSystem,
+    build_absolute_positional_restraint_force,
+    load_positions_file,
+    write_pdb,
+)
 from ..simulation import create_integrator, ensure_output_dir
 from ..types import FrameObservables
 from .windows import (
@@ -106,6 +114,8 @@ class MappingWindowRunner:
             delta_alpha=self.parameters.delta_alpha,
             equilibration_restraint=self._resolve_equilibration_restraint(),
             substrate_com_restraint=self._resolve_substrate_com_restraint(),
+            far_field_restraint=_resolve_far_field_restraint(self.config, self.state1.positions_nm),
+            unconstrained_atoms=_reactive_constraint_exclusions(self.config),
         )
         integrator = create_integrator(
             timestep_fs=self.config.sampling.integrator.timestep_fs,
@@ -116,6 +126,7 @@ class MappingWindowRunner:
         context = self._create_context(mapped_system, integrator)
         positions = self._select_start_positions()
         context.setPositions(positions * unit.nanometer)
+        self._relax_seed_positions_if_needed(context, integrator, mapped_system)
         context.setVelocitiesToTemperature(
             self.config.sampling.md.temperature_k * unit.kelvin,
             self.config.sampling.integrator.seed,
@@ -172,6 +183,36 @@ class MappingWindowRunner:
         if mapped_system.box_vectors_nm is not None:
             context.setPeriodicBoxVectors(*(vec * unit.nanometer for vec in mapped_system.box_vectors_nm))
         return context
+
+    def _relax_seed_positions_if_needed(self, context, integrator, mapped_system: MappedOpenMMSystem) -> None:
+        spec = self.config.sampling.seed_relaxation
+        if not spec.enabled or self.initial_positions_nm is None:
+            return
+        restraint = build_absolute_positional_restraint_force(
+            self.initial_positions_nm,
+            force_constant_kj_mol_nm2=spec.restraint_force_constant_kj_mol_nm2,
+            parameter_name="k_seed",
+        )
+        restraint_index = mapped_system.system.addForce(restraint)
+        try:
+            context.reinitialize(preserveState=True)
+            for scale in spec.restraint_decay:
+                context.setParameter("k_seed", spec.restraint_force_constant_kj_mol_nm2 * float(scale))
+                if spec.minimization_steps > 0:
+                    openmm.LocalEnergyMinimizer.minimize(
+                        context,
+                        self.config.sampling.md.minimize_tolerance * unit.kilojoule_per_mole / unit.nanometer,
+                        spec.minimization_steps,
+                    )
+                if spec.equilibration_steps > 0:
+                    context.setVelocitiesToTemperature(
+                        (spec.temperature_k or self.config.sampling.md.temperature_k) * unit.kelvin,
+                        self.config.sampling.integrator.seed,
+                    )
+                    integrator.step(spec.equilibration_steps)
+        finally:
+            mapped_system.system.removeForce(restraint_index)
+            context.reinitialize(preserveState=True)
 
     def _collect_production(self, context, integrator, mapped_system: MappedOpenMMSystem, window_dir: Path) -> list[FrameObservables]:
         frames: list[FrameObservables] = []
@@ -352,6 +393,8 @@ class GapUmbrellaWindowRunner:
             gap_force_constant=self.window.force_constant_kj_mol2,
             equilibration_restraint=self._resolve_equilibration_restraint(),
             substrate_com_restraint=self._resolve_substrate_com_restraint(),
+            far_field_restraint=_resolve_far_field_restraint(self.config, self.state1.positions_nm),
+            unconstrained_atoms=_reactive_constraint_exclusions(self.config),
         )
         integrator = create_integrator(
             timestep_fs=self.config.sampling.integrator.timestep_fs,
@@ -362,6 +405,7 @@ class GapUmbrellaWindowRunner:
         context = self._create_context(umbrella_system, integrator)
         positions = self._select_start_positions()
         context.setPositions(positions * unit.nanometer)
+        self._relax_seed_positions_if_needed(context, integrator, umbrella_system)
         context.setVelocitiesToTemperature(
             self.config.sampling.md.temperature_k * unit.kelvin,
             self.config.sampling.integrator.seed,
@@ -372,8 +416,7 @@ class GapUmbrellaWindowRunner:
                 self.config.sampling.md.minimize_tolerance * unit.kilojoule_per_mole / unit.nanometer,
                 self.config.sampling.md.minimize_steps,
             )
-        if self.config.sampling.md.equilibration_steps > 0:
-            integrator.step(self.config.sampling.md.equilibration_steps)
+        self._equilibrate_with_umbrella_ramp(context, integrator)
         self._disable_equilibration_restraint(context)
 
         window_dir = ensure_output_dir(Path(output_root) / "windows" / self.window.window_id)
@@ -418,6 +461,41 @@ class GapUmbrellaWindowRunner:
         if umbrella_system.box_vectors_nm is not None:
             context.setPeriodicBoxVectors(*(vec * unit.nanometer for vec in umbrella_system.box_vectors_nm))
         return context
+
+    def _relax_seed_positions_if_needed(self, context, integrator, umbrella_system: EVBOpenMMSystem) -> None:
+        spec = self.config.sampling.seed_relaxation
+        if not spec.enabled or self.initial_positions_nm is None:
+            return
+        full_k_gap = context.getParameter("k_gap") if "k_gap" in [umbrella_system.evb_force.getGlobalParameterName(i) for i in range(umbrella_system.evb_force.getNumGlobalParameters())] else None
+        if full_k_gap is not None:
+            context.setParameter("k_gap", 0.0)
+        restraint = build_absolute_positional_restraint_force(
+            self.initial_positions_nm,
+            force_constant_kj_mol_nm2=spec.restraint_force_constant_kj_mol_nm2,
+            parameter_name="k_seed",
+        )
+        restraint_index = umbrella_system.system.addForce(restraint)
+        try:
+            context.reinitialize(preserveState=True)
+            for scale in spec.restraint_decay:
+                context.setParameter("k_seed", spec.restraint_force_constant_kj_mol_nm2 * float(scale))
+                if spec.minimization_steps > 0:
+                    openmm.LocalEnergyMinimizer.minimize(
+                        context,
+                        self.config.sampling.md.minimize_tolerance * unit.kilojoule_per_mole / unit.nanometer,
+                        spec.minimization_steps,
+                    )
+                if spec.equilibration_steps > 0:
+                    context.setVelocitiesToTemperature(
+                        (spec.temperature_k or self.config.sampling.md.temperature_k) * unit.kelvin,
+                        self.config.sampling.integrator.seed,
+                    )
+                    integrator.step(spec.equilibration_steps)
+        finally:
+            umbrella_system.system.removeForce(restraint_index)
+            context.reinitialize(preserveState=True)
+            if full_k_gap is not None:
+                context.setParameter("k_gap", full_k_gap)
 
     def _collect_production(self, context, integrator, umbrella_system: EVBOpenMMSystem, window_dir: Path) -> list[FrameObservables]:
         frames: list[FrameObservables] = []
@@ -518,6 +596,34 @@ class GapUmbrellaWindowRunner:
     def _resolve_substrate_com_restraint(self) -> tuple[list[int], float] | None:
         return _resolve_substrate_com_restraint(self.config)
 
+    def _equilibrate_with_umbrella_ramp(self, context, integrator) -> None:
+        steps = self.config.sampling.md.equilibration_steps
+        if steps <= 0:
+            return
+        full_k = self.window.force_constant_kj_mol2
+        ramp = self.config.sampling.umbrella_ramp
+        if not ramp.enabled:
+            integrator.step(steps)
+            return
+        fractions = [float(value) for value in ramp.fractions if float(value) > 0.0]
+        if not fractions:
+            integrator.step(steps)
+            return
+        chunk = max(steps // len(fractions), 1)
+        completed = 0
+        for fraction in fractions:
+            context.setParameter("k_gap", full_k * min(fraction, 1.0))
+            advance = min(chunk, steps - completed)
+            if advance > 0:
+                integrator.step(advance)
+                completed += advance
+            if completed >= steps:
+                break
+        if completed < steps:
+            context.setParameter("k_gap", full_k)
+            integrator.step(steps - completed)
+        context.setParameter("k_gap", full_k)
+
     @staticmethod
     def _disable_equilibration_restraint(context) -> None:
         if hasattr(context, "setParameter"):
@@ -586,6 +692,8 @@ class ProtonTransferUmbrellaWindowRunner:
             rc_force_constant_kj_mol_nm2=self.window.force_constant_kj_mol_nm2,
             equilibration_restraint=self._resolve_equilibration_restraint(),
             substrate_com_restraint=self._resolve_substrate_com_restraint(),
+            far_field_restraint=_resolve_far_field_restraint(self.config, self.state1.positions_nm),
+            unconstrained_atoms=_reactive_constraint_exclusions(self.config),
         )
         integrator = create_integrator(
             timestep_fs=self.config.sampling.integrator.timestep_fs,
@@ -900,3 +1008,42 @@ def _resolve_substrate_com_restraint(config: EVBConfig) -> tuple[list[int], floa
     if spec.substrate_com_force_constant_kj_mol_nm2 is None:
         raise ValueError("production_restraint.enabled requires substrate_com_force_constant_kj_mol_nm2.")
     return list(atom_indices), spec.substrate_com_force_constant_kj_mol_nm2
+
+
+def _resolve_far_field_restraint(config: EVBConfig, reference_positions_nm: np.ndarray) -> tuple[list[int], np.ndarray, float] | None:
+    spec = config.sampling.far_field_restraint
+    if not spec.enabled:
+        return None
+    if spec.restrained_atoms:
+        restrained_atoms = sorted(set(spec.restrained_atoms))
+    else:
+        active_atoms = _active_atoms_for_far_field(config)
+        if not active_atoms:
+            raise ValueError("far_field_restraint.enabled requires active_atoms, reaction atoms, or reaction.substrate_atoms.")
+        active_positions = reference_positions_nm[active_atoms]
+        restrained_atoms = []
+        for atom_index, position in enumerate(reference_positions_nm):
+            distances = np.linalg.norm(active_positions - position, axis=1)
+            if float(np.min(distances)) > spec.radius_nm:
+                restrained_atoms.append(atom_index)
+    active_set = set(_active_atoms_for_far_field(config))
+    restrained_atoms = [index for index in restrained_atoms if index not in active_set]
+    if not restrained_atoms:
+        return None
+    return restrained_atoms, reference_positions_nm, spec.force_constant_kj_mol_nm2
+
+
+def _active_atoms_for_far_field(config: EVBConfig) -> list[int]:
+    active_atoms = set(config.sampling.far_field_restraint.active_atoms)
+    active_atoms.update(config.reaction.substrate_atoms)
+    atoms = config.reaction.atoms or config.cv
+    if atoms is not None:
+        active_atoms.update([atoms.donor, atoms.proton, atoms.acceptor])
+    return sorted(active_atoms)
+
+
+def _reactive_constraint_exclusions(config: EVBConfig) -> set[int]:
+    atoms = config.reaction.atoms or config.cv
+    if atoms is None:
+        return set()
+    return {atoms.donor, atoms.proton, atoms.acceptor}

@@ -69,6 +69,64 @@ def test_native_openmm_evb_toy_system_matches_analytical_energy_and_minimizes():
     assert history[-1].evb_energy <= history[0].evb_energy
 
 
+def test_native_openmm_evb_weights_match_delta_alpha_finite_difference():
+    state1 = _make_state(r0_nm=0.12, distance_nm=0.18)
+    state2 = _make_state(r0_nm=0.14, distance_nm=0.18)
+    parameters = EVBParameters(delta_alpha=2.0, h12=5.0)
+
+    evb_system = EVBSystemBuilder().build_openmm_evb_system(
+        state1,
+        state2,
+        parameters.delta_alpha,
+        parameters.h12,
+    )
+    simulation = EVBSimulation(
+        evb_system=evb_system,
+        integrator=create_integrator(1.0, integrator_name="Verlet"),
+        platform_name="CPU",
+    )
+
+    result = simulation.single_point()
+    eps = 1.0e-4
+    simulation.context.setParameter("delta_alpha", parameters.delta_alpha + eps)
+    e_plus = simulation.context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(unit.kilojoule_per_mole)
+    simulation.context.setParameter("delta_alpha", parameters.delta_alpha - eps)
+    e_minus = simulation.context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(unit.kilojoule_per_mole)
+    finite_difference = (e_plus - e_minus) / (2.0 * eps)
+
+    assert np.isclose(finite_difference, result.weight2, rtol=1.0e-5, atol=1.0e-5)
+
+
+def test_native_openmm_evb_force_matches_position_finite_difference():
+    state1 = _make_state(r0_nm=0.12, distance_nm=0.18)
+    state2 = _make_state(r0_nm=0.14, distance_nm=0.18)
+    parameters = EVBParameters(delta_alpha=2.0, h12=5.0)
+
+    evb_system = EVBSystemBuilder().build_openmm_evb_system(
+        state1,
+        state2,
+        parameters.delta_alpha,
+        parameters.h12,
+    )
+    simulation = EVBSimulation(
+        evb_system=evb_system,
+        integrator=create_integrator(1.0, integrator_name="Verlet"),
+        platform_name="CPU",
+    )
+    positions = state1.positions_nm.copy()
+    result = simulation.single_point(positions)
+
+    eps = 1.0e-5
+    displaced = positions.copy()
+    displaced[1, 0] += eps
+    e_plus = simulation.single_point(displaced).evb_energy
+    displaced[1, 0] -= 2.0 * eps
+    e_minus = simulation.single_point(displaced).evb_energy
+    finite_difference_force = -(e_plus - e_minus) / (2.0 * eps)
+
+    assert np.isclose(result.forces[1, 0], finite_difference_force, rtol=1.0e-4, atol=1.0e-4)
+
+
 def test_native_openmm_evb_toy_system_runs_on_cuda_when_available():
     try:
         mm.Platform.getPlatformByName("CUDA")

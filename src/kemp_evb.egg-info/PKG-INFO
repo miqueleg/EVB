@@ -6,6 +6,7 @@ Author: OpenAI Codex
 Requires-Python: >=3.10
 Description-Content-Type: text/markdown
 Requires-Dist: numpy>=1.24
+Requires-Dist: PyYAML>=6.0
 Provides-Extra: openmm
 Requires-Dist: openmm>=8.1; extra == "openmm"
 Provides-Extra: test
@@ -13,72 +14,145 @@ Requires-Dist: pytest>=8.0; extra == "test"
 
 # Kemp EVB OpenMM PoC
 
-Proof-of-concept Python package for two-state EVB dynamics of Kemp eliminase using two diabatic AMBER parameterizations and one shared coordinate set.
+Proof-of-concept codebase for conventional two-state EVB in OpenMM, organized around:
 
-## Scope
+1. compatible diabatic state definitions
+2. native OpenMM EVB and mapped Hamiltonians
+3. mapping-window sampling
+4. gap-distribution analysis and barrier reconstruction
+5. a later path to enhanced sampling such as OPES
 
-Version `0.2.0` implements:
+The code is being built in phases. The repository now includes:
+
+- a native lower-surface EVB propagator in OpenMM
+- a mapped-Hamiltonian sampling path for conventional EVB windows
+- per-frame logging of `E1`, `E2`, `ΔE`, shifted `ΔE`, EVB energy, and diagnostic distances
+- basic analysis for gap histograms, PMF-like reconstruction, window overlap, and barrier summaries
+- bootstrap and ensemble EVB parameter fitting
+
+## Current Scope
+
+Implemented now:
 
 - two-state EVB with constant `H12`
 - one offset parameter `delta_alpha`
-- one native OpenMM `System` and one native OpenMM `Context`
-- nested `CustomCVForce` objects for diabatic state energies and the lower EVB surface
-- native OpenMM minimization, integrators, thermostats, and compatibility with later biasing/metadynamics work
-- proton-transfer CV `d(donor-H) - d(acceptor-H)`
-- JSON config input and CLI commands
+- one native OpenMM `System` for the lower EVB surface
+- one mapped OpenMM `System` for windowed sampling:
+  - `E_map(lambda) = (1 - lambda) * E1 + lambda * (E2 + delta_alpha)`
+- JSON and YAML config loading
+- state compatibility validation
+- single-point EVB and gap evaluation
+- mapping-window sampling and series execution
+- gap histogramming, PMF export, overlap diagnostics, and barrier estimation
+- bootstrap fitting from explicit calibration targets
+- ensemble fitting by scanning `delta_alpha` and `H12` against sampled window data
 
-The EVB surface is
+Not implemented yet:
 
-`Eevb = 0.5 * (E1 + E2 + delta_alpha) - sqrt(0.25 * (E1 - E2 - delta_alpha)^2 + H12^2)`
+- rigorous reweighting / WHAM / MBAR-style reconstruction
+- OPES integration
+- geometry-dependent coupling
+- production chemistry preparation workflows
 
-At runtime, `E1` and `E2` are represented as two nested `CustomCVForce` collective variables, each aggregating all energy-bearing forces from one AMBER diabatic state. OpenMM differentiates the final EVB force expression directly, so the propagated force is native to the single EVB `Context`.
+## Repository Layout
 
-## Architecture
+```text
+src/kemp_evb/
+  analysis/      gap histograms, PMF reconstruction, overlap, barrier summaries
+  engine/        validation helpers for diabatic states
+  observables/   gap and geometric diagnostics
+  sampling/      mapping windows and sampling runners
+  cli.py         command-line entry points
+  config.py      legacy JSON + new YAML config models
+  evb.py         EVB Hamiltonian and bootstrap fitting logic
+  openmm_backend.py
+  simulation.py
 
-- `state1.prmtop` and `state2.prmtop` are each loaded into their own temporary OpenMM `System`
-- each state's forces are cloned into a nested aggregate `CustomCVForce`
-- a top-level `CustomCVForce` computes the lower EVB eigenvalue from `e1`, `e2`, `delta_alpha`, and `h12`
-- the resulting EVB `System` is used with a normal OpenMM `Integrator` and `Context`
+examples/
+  kemp_evb_config.json
+  solution_kemp_baseline.yaml
 
-This allows:
+tests/
+  test_evb_core.py
+  test_openmm_toy.py
+  test_config_modern.py
+  test_gap_observables.py
+  test_sampling_windows.py
+  test_analysis_pipeline.py
+  test_fitting_pipeline.py
+```
 
-- `LocalEnergyMinimizer`
-- native OpenMM integrators
-- native thermostats via integrator choice
-- later addition of metadynamics/bias forces on the same `System`
+## Installation
 
-## Layout
-
-- `src/kemp_evb/evb.py`: EVB Hamiltonian and calibration logic
-- `src/kemp_evb/openmm_backend.py`: AMBER loading and native EVB `System` assembly
-- `src/kemp_evb/simulation.py`: native OpenMM `Context` wrapper
-- `src/kemp_evb/cli.py`: CLI commands
-- `examples/kemp_evb_config.json`: example config
-- `tests/test_evb_core.py`: minimal non-OpenMM test coverage
-
-## Install
+Minimal editable install:
 
 ```bash
 pip install -e .
-pip install openmm
 ```
 
-## Input files
+Recommended dependencies for the current code:
 
-Expected AMBER inputs per diabatic state:
+```bash
+pip install openmm PyYAML pytest
+```
+
+If you use the included conda environment file:
+
+```bash
+conda env create -f environment.kemp-evb.yml
+conda activate kemp-evb
+pip install -e .
+```
+
+## Input Requirements
+
+For real EVB runs, the code expects two diabatic states with identical system layout:
+
+- same number of atoms
+- same atom ordering
+- same masses
+- same periodic box
+- same constraints / virtual-site structure
+
+Current production input format:
 
 - `state1.prmtop`
 - `state1.inpcrd`
 - `state2.prmtop`
 - `state2.inpcrd`
 
-Optional coordinate files for calibration geometries can be `.inpcrd` or `.pdb`.
+The repository does not currently prepare these states for you. Chemistry preparation is assumed to happen outside this package.
 
-## Example config
+## Config Formats
 
-See [examples/kemp_evb_config.json](/home/mestevez/Projects/EVB/PoC1/KEMP/examples/kemp_evb_config.json).
+Two config styles are supported.
+
+### Legacy JSON
+
+The original prototype JSON format still works:
+
+- [kemp_evb_config.json](/home/mestevez/Projects/EVB/PoC1/KEMP/examples/kemp_evb_config.json)
+
+This is mainly kept for backward compatibility with the old `calibrate`, `singlepoint`, `minimize`, and `md` commands.
+
+### Baseline YAML
+
+The new workflow-oriented config is:
+
+- [solution_kemp_baseline.yaml](/home/mestevez/Projects/EVB/PoC1/KEMP/examples/solution_kemp_baseline.yaml)
+
+This format adds:
+
+- project metadata
+- reaction metadata and reactive atom indices
+- EVB coupling parameters
+- mapping-window definitions
+- analysis settings
+- diagnostic distance definitions
 
 ## CLI
+
+### Legacy EVB surface commands
 
 ```bash
 kemp-evb calibrate --config examples/kemp_evb_config.json
@@ -87,22 +161,235 @@ kemp-evb minimize --config examples/kemp_evb_config.json
 kemp-evb md --config examples/kemp_evb_config.json
 ```
 
-## Outputs
+These operate on the lower EVB surface using the native OpenMM EVB system.
 
-The CLI writes into `output_dir` from the config:
+### Phase 1 validation and observables
 
-- `calibrated_evb_parameters.json`
-- `calibration_summary.json`
-- `singlepoint.json`
-- `minimization_log.json`
-- `minimized.pdb`
-- `evb_md.dcd`
-- `evb_md_log.csv`
-- `evb_md_final.pdb`
+Validate state compatibility:
 
-## Notes
+```bash
+kemp-evb validate-states --config examples/solution_kemp_baseline.yaml
+```
 
-- Calibration still evaluates the raw diabatic MM states independently to obtain `E1` and `E2` at the calibration geometries.
-- Runtime propagation now uses a real OpenMM EVB `Context`; it no longer mixes forces in Python during minimization or MD.
-- The current implementation assumes state 1 and state 2 share atom ordering, masses, constraints, virtual sites, and periodic box.
-- The test suite included here is non-OpenMM-only because this environment does not currently include OpenMM or sample AMBER systems.
+Evaluate gap observables on the configured coordinates:
+
+```bash
+kemp-evb gap-eval --config examples/solution_kemp_baseline.yaml
+```
+
+Evaluate on a different structure:
+
+```bash
+kemp-evb gap-eval --config examples/solution_kemp_baseline.yaml --coords some_structure.pdb
+```
+
+### Phase 2 sampling
+
+Run one mapping window:
+
+```bash
+kemp-evb sample-window --config examples/solution_kemp_baseline.yaml --window w000
+```
+
+Run the whole mapping series:
+
+```bash
+kemp-evb sample-series --config examples/solution_kemp_baseline.yaml
+```
+
+### Phase 3 analysis
+
+Analyze gap distributions and write analysis artifacts:
+
+```bash
+kemp-evb analyze-gap --config examples/solution_kemp_baseline.yaml
+```
+
+Rebuild the barrier estimate from existing window logs:
+
+```bash
+kemp-evb reconstruct-barrier --config examples/solution_kemp_baseline.yaml
+```
+
+Write a compact summary report:
+
+```bash
+kemp-evb report --config examples/solution_kemp_baseline.yaml
+```
+
+### Phase 4 fitting
+
+Bootstrap fit from explicit calibration energies:
+
+```bash
+kemp-evb fit-bootstrap --config examples/kemp_evb_config.json
+```
+
+Ensemble fit from existing mapping-window logs:
+
+```bash
+kemp-evb fit-ensemble --config examples/solution_kemp_baseline.yaml
+```
+
+## Output Layout
+
+With the new YAML workflow, outputs are organized as:
+
+```text
+outputs/<project>/
+  state_validation.json
+  gap_eval.json
+
+  windows/
+    w000/
+      window_spec.json
+      production_observables.csv
+      final_state.pdb
+      summary.json
+    w001/
+      ...
+
+  series/
+    window_index.json
+
+  analysis/
+    analysis_report.json
+    gap_histograms.json
+    pmf_gap.csv
+    window_overlap.json
+    barrier_estimate.json
+
+  fitting/
+    bootstrap_fit.json
+    ensemble_fit.json
+    fit_scan.csv
+
+  reports/
+    summary.json
+    summary.md
+```
+
+The key artifact for conventional EVB analysis is:
+
+`windows/wXXX/production_observables.csv`
+
+Each row contains:
+
+- frame index
+- MD step
+- time
+- window id
+- mapping `lambda`
+- `E1`
+- `E2`
+- raw energy gap
+- shifted energy gap
+- EVB lower-surface energy evaluated from the current parameters
+- EVB weights
+- optional geometric diagnostics
+
+## Analysis Model
+
+The current Phase 3 analysis is intentionally simple.
+
+It does:
+
+1. load all per-window `ΔE` values
+2. build per-window histograms
+3. build one combined histogram
+4. convert the combined probability distribution into a PMF-like curve:
+   - `F(ΔE) = -RT ln P(ΔE) + C`
+5. estimate:
+   - reactant basin minimum
+   - product basin minimum
+   - a barrier maximum between them
+6. compute a pairwise overlap matrix between window histograms
+
+This is useful as a baseline and debugging tool. It is not yet a rigorous multi-window free-energy reconstruction method.
+
+## Fitting Model
+
+Two fitting paths exist.
+
+### Bootstrap fit
+
+This uses explicit calibration energies already present in the legacy config:
+
+- MM energies for `min1`, `min2`, and `TS`
+- target QM/MM or reference energies for the same three points
+
+It is a direct pointwise initialization method.
+
+### Ensemble fit
+
+This uses sampled window logs and scans over:
+
+- `delta_alpha`
+- `H12`
+
+For each candidate pair, the code:
+
+1. reads `E1`, `E2`, and `lambda` from the window logs
+2. computes candidate lower-surface EVB energies
+3. applies a lightweight reweighting from the mapped Hamiltonian used during sampling
+4. reconstructs a PMF-like profile
+5. scores the candidate against:
+   - target forward barrier
+   - target reaction free energy
+
+The current implementation is intentionally simple and is meant as an operational baseline, not a final statistically rigorous fitting engine.
+
+## Tests
+
+Run tests in the intended environment:
+
+```bash
+python -m pytest -q
+```
+
+Current coverage includes:
+
+- analytical EVB core behavior
+- native OpenMM EVB toy systems
+- YAML config loading
+- gap observables
+- mapping-window generation and logging
+- analysis pipeline on synthetic window data
+- fitting pipeline on synthetic window data
+
+## Recommended Workflow
+
+For a real solution benchmark:
+
+1. prepare `state1` and `state2` externally
+2. fill in `examples/solution_kemp_baseline.yaml`
+3. run `validate-states`
+4. run `gap-eval`
+5. run one or a few `sample-window` jobs to verify stability
+6. run `sample-series`
+7. run `analyze-gap`
+8. optionally run `fit-ensemble`
+9. inspect:
+   - `analysis/pmf_gap.csv`
+   - `analysis/window_overlap.json`
+   - `analysis/barrier_estimate.json`
+   - `fitting/ensemble_fit.json`
+   - `fitting/fit_scan.csv`
+
+Only after the baseline is numerically sane should enhanced sampling be added.
+
+## Status Relative To The Long-Term Goal
+
+This repo is now aligned with a conventional EVB baseline:
+
+- the primary observable is the diabatic energy gap
+- mapped windows are sampled explicitly
+- barrier reconstruction is statistical, based on sampled gap distributions
+
+The next major steps are:
+
+1. stronger reweighting / free-energy reconstruction
+2. better uncertainty estimates for barriers and fits
+3. OPES as an optional accelerated sampling backend
+
+That order matters. OPES should be compared against a working conventional EVB baseline, not used to compensate for an unvalidated baseline.

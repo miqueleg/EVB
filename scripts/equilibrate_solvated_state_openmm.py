@@ -32,10 +32,11 @@ def _restrained_system(prmtop: AmberPrmtopFile, restraint_k_kcal_a2: float):
 
 
 def _inject_reference_positions(force, positions):
+    positions_nm = positions.value_in_unit(unit.nanometer)
     for idx in range(force.getNumParticles()):
         atom_index, _ = force.getParticleParameters(idx)
-        pos = positions[atom_index]
-        force.setParticleParameters(idx, atom_index, [pos.x, pos.y, pos.z])
+        pos = positions_nm[atom_index]
+        force.setParticleParameters(idx, atom_index, [float(pos[0]), float(pos[1]), float(pos[2])])
 
 
 def _write_pdb(path: Path, topology, positions):

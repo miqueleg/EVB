@@ -1,0 +1,60 @@
+project:
+  name: hg317-evb-plumed-metad
+  output_dir: outputs/hg317_evb_plumed_metad
+reaction:
+  metadata:
+    name: HG3.17 Kemp eliminase EVB PLUMED metadynamics
+    phase: enzyme
+    temperature_k: 300.0
+    pressure_bar: 1.0
+    notes: PLUMED biases geometrical CVs only; the EVB energy gap remains a native OpenMM observable.
+  atoms:
+    donor: 6
+    proton: 15
+    acceptor: 19
+  substrate_atoms: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+states:
+  state1:
+    topology: prep/kemp_qm_openmm/07_openmm_bundles/RC/system.xml
+    coordinates: prep/kemp_qm_openmm/07_openmm_bundles/RC/coordinates.pdb
+    format: openmm
+  state2:
+    topology: prep/kemp_qm_openmm/07_openmm_bundles/PROD/system.xml
+    coordinates: prep/kemp_qm_openmm/07_openmm_bundles/PROD/coordinates.pdb
+    format: openmm
+evb:
+  coupling_model:
+    model: constant
+    parameters:
+      delta_alpha_kj_mol: -53328.25448088075
+      h12_kj_mol: 49606.147558391305
+sampling:
+  mode: mapping
+  integrator:
+    name: LangevinMiddle
+    timestep_fs: 0.05
+    friction_per_ps: 1.0
+    seed: 31725
+  md:
+    production_steps: 100
+    report_stride: 20
+    platform: CUDA
+    temperature_k: 300.0
+    nonbonded_method: PME
+    constraints: None
+    minimize_steps: 0
+  windows:
+    mapping:
+      lambda_values: [0.0]
+plumed:
+  enabled: true
+  restart: true
+  output_colvar: COLVAR
+  script: |
+    # PLUMED atom indices are 1-based. OpenMM/Python indices are 0-based.
+    d_donor_h: DISTANCE ATOMS=7,16
+    d_h_acceptor: DISTANCE ATOMS=16,20
+    pt_rc: COMBINE ARG=d_donor_h,d_h_acceptor COEFFICIENTS=1,-1 PERIODIC=NO
+    ring_open: DISTANCE ATOMS=2,12
+    METAD ARG=pt_rc,ring_open PACE=50 HEIGHT=1.2 SIGMA=0.02,0.02 BIASFACTOR=10 TEMP=300 FILE=HILLS
+    PRINT ARG=d_donor_h,d_h_acceptor,pt_rc,ring_open,metad.bias FILE=COLVAR STRIDE=20

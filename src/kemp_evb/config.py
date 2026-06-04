@@ -80,6 +80,32 @@ class ProductionRestraintSettings:
 
 
 @dataclass(slots=True)
+class FarFieldRestraintSettings:
+    enabled: bool = False
+    active_atoms: list[int] = field(default_factory=list)
+    restrained_atoms: list[int] = field(default_factory=list)
+    radius_nm: float = 1.2
+    force_constant_kj_mol_nm2: float = 25.0
+
+
+@dataclass(slots=True)
+class UmbrellaRampSettings:
+    enabled: bool = True
+    fractions: list[float] = field(default_factory=lambda: [0.1, 0.25, 0.5, 1.0])
+
+
+@dataclass(slots=True)
+class SeedRelaxationSettings:
+    enabled: bool = True
+    minimization_steps: int = 500
+    equilibration_steps: int = 0
+    timestep_fs: float | None = None
+    temperature_k: float | None = None
+    restraint_force_constant_kj_mol_nm2: float = 250.0
+    restraint_decay: list[float] = field(default_factory=lambda: [1.0, 0.5, 0.1, 0.0])
+
+
+@dataclass(slots=True)
 class SimulationSettings:
     timestep_fs: float = 1.0
     temperature_k: float = 300.0
@@ -207,6 +233,9 @@ class SamplingSettings:
     md: MDRunSettings = field(default_factory=MDRunSettings)
     equilibration_restraint: EquilibrationRestraintSettings = field(default_factory=EquilibrationRestraintSettings)
     production_restraint: ProductionRestraintSettings = field(default_factory=ProductionRestraintSettings)
+    far_field_restraint: FarFieldRestraintSettings = field(default_factory=FarFieldRestraintSettings)
+    umbrella_ramp: UmbrellaRampSettings = field(default_factory=UmbrellaRampSettings)
+    seed_relaxation: SeedRelaxationSettings = field(default_factory=SeedRelaxationSettings)
     windows: SamplingWindows = field(default_factory=SamplingWindows)
     seed_windows: list[WindowSeedDefinition] = field(default_factory=list)
 
@@ -269,6 +298,15 @@ class FitSettings:
 
 
 @dataclass(slots=True)
+class PlumedSettings:
+    enabled: bool = False
+    script: str | None = None
+    script_file: str | None = None
+    output_colvar: str = "COLVAR"
+    restart: bool = False
+
+
+@dataclass(slots=True)
 class EVBConfig:
     state1: StateFiles
     state2: StateFiles
@@ -284,6 +322,7 @@ class EVBConfig:
     sampling: SamplingSettings = field(default_factory=SamplingSettings)
     analysis: AnalysisSettings = field(default_factory=AnalysisSettings)
     fit: FitSettings = field(default_factory=FitSettings)
+    plumed: PlumedSettings = field(default_factory=PlumedSettings)
 
 
 def _coerce_state_files(data: dict[str, Any]) -> StateFiles:
@@ -394,6 +433,9 @@ def _from_legacy_mapping(data: dict[str, Any]) -> EVBConfig:
         ),
         equilibration_restraint=EquilibrationRestraintSettings(enabled=False),
         production_restraint=ProductionRestraintSettings(enabled=False),
+        far_field_restraint=FarFieldRestraintSettings(enabled=False),
+        umbrella_ramp=UmbrellaRampSettings(enabled=False),
+        seed_relaxation=SeedRelaxationSettings(enabled=False),
         seed_windows=[],
     )
     return EVBConfig(
@@ -452,6 +494,9 @@ def _from_modern_mapping(data: dict[str, Any]) -> EVBConfig:
         md=MDRunSettings(**md_payload) if md_payload else MDRunSettings(),
         equilibration_restraint=EquilibrationRestraintSettings(**sampling_payload.get("equilibration_restraint", {})),
         production_restraint=ProductionRestraintSettings(**sampling_payload.get("production_restraint", {})),
+        far_field_restraint=FarFieldRestraintSettings(**sampling_payload.get("far_field_restraint", {})),
+        umbrella_ramp=UmbrellaRampSettings(**sampling_payload.get("umbrella_ramp", {})),
+        seed_relaxation=SeedRelaxationSettings(**sampling_payload.get("seed_relaxation", {})),
         windows=SamplingWindows(
             mapping=MappingWindows(**windows_payload.get("mapping", {})),
             gap_umbrella=GapUmbrellaWindows(**windows_payload.get("gap_umbrella", {})),
@@ -507,6 +552,8 @@ def _from_modern_mapping(data: dict[str, Any]) -> EVBConfig:
         ensemble_targets=_coerce_fit_targets(fit_payload.get("ensemble_targets")),
         scan=FitScanSettings(**fit_payload.get("scan", {})),
     )
+    plumed = PlumedSettings(**data.get("plumed", {}))
+    _validate_modern_payload(data, evb_payload, coupling_payload)
 
     return EVBConfig(
         state1=state1,
@@ -523,6 +570,7 @@ def _from_modern_mapping(data: dict[str, Any]) -> EVBConfig:
         sampling=sampling,
         analysis=analysis,
         fit=fit,
+        plumed=plumed,
     )
 
 
@@ -545,3 +593,48 @@ def load_config(path: str | Path) -> EVBConfig:
     if not isinstance(payload, dict):
         raise ValueError("Configuration file must contain a mapping/object at the top level.")
     return _from_mapping(payload)
+
+
+def validate_config(config: EVBConfig) -> list[str]:
+    errors: list[str] = []
+    if config.evb_parameters.delta_alpha is None:
+        errors.append("evb.coupling_model.parameters.delta_alpha_kj_mol is required.")
+    if config.evb_parameters.h12 is None:
+        errors.append("evb.coupling_model.parameters.h12_kj_mol is required.")
+    if config.sampling.mode not in {"mapping", "gap_umbrella", "proton_transfer_umbrella"}:
+        errors.append(f"Unsupported sampling.mode {config.sampling.mode!r}.")
+    if config.sampling.mode == "mapping" and not config.sampling.windows.mapping.lambda_values:
+        errors.append("mapping mode requires sampling.windows.mapping.lambda_values.")
+    if config.sampling.mode == "gap_umbrella":
+        if not config.sampling.windows.gap_umbrella.centers_kj_mol:
+            errors.append("gap_umbrella mode requires sampling.windows.gap_umbrella.centers_kj_mol.")
+        if config.sampling.windows.gap_umbrella.force_constant_kj_mol2 is None:
+            errors.append("gap_umbrella mode requires sampling.windows.gap_umbrella.force_constant_kj_mol2.")
+    if config.plumed.enabled and not (config.plumed.script or config.plumed.script_file):
+        errors.append("plumed.enabled requires plumed.script or plumed.script_file.")
+    return errors
+
+
+def _validate_modern_payload(data: dict[str, Any], evb_payload: dict[str, Any], coupling_payload: dict[str, Any]) -> None:
+    allowed_top_level = {
+        "project",
+        "reaction",
+        "states",
+        "evb",
+        "sampling",
+        "observables",
+        "analysis",
+        "fit",
+        "plumed",
+        "start_state",
+    }
+    extra = sorted(set(data) - allowed_top_level)
+    if extra:
+        raise ValueError(f"Unknown top-level config section(s): {', '.join(extra)}")
+    model = coupling_payload.get("model", "constant")
+    if model != "constant":
+        raise ValueError(
+            "Only constant EVB coupling is currently supported. Geometry-dependent H12 is a planned extension."
+        )
+    if "geometry_dependent" in evb_payload:
+        raise ValueError("Geometry-dependent H12 is not implemented in this validated API.")

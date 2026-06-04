@@ -1,4 +1,5 @@
 numpy>=1.24
+PyYAML>=6.0
 
 [openmm]
 openmm>=8.1

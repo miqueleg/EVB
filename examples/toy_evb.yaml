@@ -1,0 +1,39 @@
+project:
+  name: toy-evb
+  output_dir: outputs/toy
+states:
+  state1:
+    format: openmm
+    topology: examples/toy_state1/system.xml
+    coordinates: examples/toy_state1/coordinates.pdb
+  state2:
+    format: openmm
+    topology: examples/toy_state2/system.xml
+    coordinates: examples/toy_state2/coordinates.pdb
+evb:
+  coupling_model:
+    model: constant
+    parameters:
+      delta_alpha_kj_mol: 2.0
+      h12_kj_mol: 5.0
+sampling:
+  mode: mapping
+  integrator:
+    name: LangevinMiddle
+    timestep_fs: 1.0
+    friction_per_ps: 1.0
+    seed: 2026
+  md:
+    production_steps: 100
+    report_stride: 10
+    temperature_k: 300.0
+    nonbonded_method: NoCutoff
+    constraints: None
+  windows:
+    mapping:
+      lambda_values: [0.0, 0.5, 1.0]
+analysis:
+  histogram:
+    bin_min_kj_mol: -50.0
+    bin_max_kj_mol: 50.0
+    n_bins: 100

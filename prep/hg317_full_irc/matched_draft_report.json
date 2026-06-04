@@ -1,0 +1,6 @@
+{
+  "status": "prepared_matched_draft_inputs",
+  "warning": "These synchronized draft states reuse the exact state-1 solvent/ion template and a 16-atom product ligand. State 2 bonds H197 to ASP127 OD2 with minimal matched-topology parameters. Those reactive-region terms are placeholders and should be replaced by parameters validated against the QM model before publication use.",
+  "state1_reference": "prep/hg317_full_irc/state1_reactant.prmtop",
+  "state2_matched_tleap": "prep/hg317_full_irc/tleap_state2_matched16.in"
+}

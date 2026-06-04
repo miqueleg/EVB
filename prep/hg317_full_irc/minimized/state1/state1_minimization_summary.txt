@@ -1,0 +1,2 @@
+initial_potential_kj_mol: -359463.07663992484
+minimized_potential_kj_mol: -392577.0776617106

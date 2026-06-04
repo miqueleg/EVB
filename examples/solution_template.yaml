@@ -1,0 +1,33 @@
+project:
+  name: solution-evb
+  output_dir: outputs/solution
+reaction:
+  metadata:
+    name: generic_solution_reaction
+    phase: solution
+    temperature_k: 300.0
+states:
+  state1:
+    topology: path/to/reactant.prmtop
+    coordinates: path/to/reactant.inpcrd
+  state2:
+    topology: path/to/product.prmtop
+    coordinates: path/to/product.inpcrd
+evb:
+  coupling_model:
+    model: constant
+    parameters:
+      delta_alpha_kj_mol: 0.0
+      h12_kj_mol: 10.0
+sampling:
+  mode: gap_umbrella
+  md:
+    production_steps: 50000
+    report_stride: 100
+  windows:
+    gap_umbrella:
+      centers_kj_mol: [-100, -50, 0, 50, 100]
+      force_constant_kj_mol2: 0.02
+observables:
+  gap:
+    shifted: true

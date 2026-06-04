@@ -1,0 +1,104 @@
+project:
+  name: hg317-evb-gap-rep11
+  output_dir: outputs/hg317_evb_gap_umbrella_replicates/rep11
+reaction:
+  metadata:
+    name: hg317_evb_gap_rep11
+    phase: enzyme
+    temperature_k: 300.0
+    pressure_bar: 1.0
+    notes: >
+      CUDA production HG3.17 EVB gap umbrella replicate. Constant H12 fitted to g-xTB RC/TS/PROD targets.
+  atoms:
+    donor: 6
+    proton: 15
+    acceptor: 19
+  substrate_atoms: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+states:
+  state1:
+    topology: prep/kemp_qm_openmm/07_openmm_bundles/RC/system.xml
+    coordinates: prep/kemp_qm_openmm/07_openmm_bundles/RC/coordinates.pdb
+    format: openmm
+  state2:
+    topology: prep/kemp_qm_openmm/07_openmm_bundles/PROD/system.xml
+    coordinates: prep/kemp_qm_openmm/07_openmm_bundles/PROD/coordinates.pdb
+    format: openmm
+evb:
+  coupling_model:
+    model: constant
+    parameters:
+      delta_alpha_kj_mol: -53328.25448088075
+      h12_kj_mol: 49606.147558391305
+sampling:
+  mode: gap_umbrella
+  integrator:
+    name: LangevinMiddle
+    timestep_fs: 0.25
+    friction_per_ps: 1.0
+    seed: 317011
+  md:
+    equilibration_steps: 20000
+    production_steps: 800000
+    report_stride: 2000
+    save_stride: null
+    platform: CUDA
+    temperature_k: 300.0
+    nonbonded_method: PME
+    constraints: None
+    minimize_steps: 500
+    minimize_tolerance: 10.0
+  far_field_restraint:
+    enabled: true
+    radius_nm: 1.2
+    force_constant_kj_mol_nm2: 25.0
+  umbrella_ramp:
+    enabled: true
+    fractions: [0.05, 0.1, 0.25, 0.5, 1.0]
+  windows:
+    gap_umbrella:
+      centers_kj_mol: [20000.0, 25000.0, 30000.0, 35000.0, 40000.0, 45000.0, 50000.0, 55000.0, 60000.0, 65000.0, 70000.0, 75000.0, 80000.0, 85000.0, 90000.0, 95000.0, 100000.0, 105000.0, 110000.0, 115000.0, 120000.0, 125000.0, 130000.0, 135000.0, 140000.0, 145000.0, 150000.0, 155000.0, 160000.0, 165000.0, 170000.0, 175000.0, 180000.0, 185000.0, 190000.0, 195000.0, 200000.0, 205000.0, 210000.0, 215000.0, 220000.0, 225000.0, 230000.0, 235000.0, 240000.0, 245000.0, 250000.0, 255000.0, 260000.0]
+      force_constant_kj_mol2: 1e-07
+  seed_windows:
+    - window_id: u000
+      coordinates: prep/kemp_qm_openmm/07_openmm_bundles/RC/coordinates.pdb
+    - window_id: u019
+      coordinates: prep/kemp_qm_openmm/05_templates/TS_solvated_template.pdb
+    - window_id: u038
+      coordinates: prep/kemp_qm_openmm/07_openmm_bundles/PROD/coordinates.pdb
+    - window_id: u048
+      coordinates: prep/kemp_qm_openmm/07_openmm_bundles/PROD/coordinates.pdb
+observables:
+  gap:
+    shifted: true
+  reaction_coordinates:
+    - name: proton_transfer_rc
+      kind: difference_of_distances
+      atom1: 6
+      atom2: 15
+      atom3: 19
+      event_threshold_nm: 0.0
+    - name: ring_opening_rc
+      kind: distance
+      atom1: 1
+      atom2: 11
+  distances:
+    - name: donor_h
+      atom1: 6
+      atom2: 15
+    - name: h_acceptor
+      atom1: 15
+      atom2: 19
+analysis:
+  histogram:
+    bin_min_kj_mol: 0.0
+    bin_max_kj_mol: 275000.0
+    n_bins: 550
+  pmf:
+    temperature_k: 300.0
+    zero_mode: reactant_min
+  barrier:
+    reactant_region: [15000.0, 35000.0]
+    product_region: [240000.0, 270000.0]
+  uncertainty:
+    blocks: 5
+    bootstrap_samples: 200

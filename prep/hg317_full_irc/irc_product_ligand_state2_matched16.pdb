@@ -1,0 +1,18 @@
+REMARK IRC frame 0, product-like matched 16-atom ligand for draft atom-count synchronization.
+HETATM    1 N1   SDM B   1      12.786   4.837  14.764  1.00  0.00           N
+HETATM    2 N2   SDM B   1      18.001   6.161  12.558  1.00  0.00           N
+HETATM    3 C1   SDM B   1      14.455   6.290  13.502  1.00  0.00           C
+HETATM    4 C2   SDM B   1      14.012   7.569  12.985  1.00  0.00           C
+HETATM    5 C3   SDM B   1      15.752   5.833  13.355  1.00  0.00           C
+HETATM    6 C4   SDM B   1      16.657   6.582  12.627  1.00  0.00           C
+HETATM    7 C5   SDM B   1      14.988   8.249  12.167  1.00  0.00           C
+HETATM    8 C6   SDM B   1      16.251   7.784  12.003  1.00  0.00           C
+HETATM    9 C7   SDM B   1      13.524   5.511  14.194  1.00  0.00           C
+HETATM   10 O1   SDM B   1      12.891   8.031  13.249  1.00  0.00           O
+HETATM   11 O2   SDM B   1      18.799   6.786  11.881  1.00  0.00           O
+HETATM   12 O3   SDM B   1      18.361   5.185  13.220  1.00  0.00           O
+HETATM   13 H1   SDM B   1      16.079   4.902  13.795  1.00  0.00           H
+HETATM   14 H2   SDM B   1      14.680   9.177  11.708  1.00  0.00           H
+HETATM   15 H3   SDM B   1      16.985   8.323  11.422  1.00  0.00           H
+HETATM   16 H4   SDM B   1      13.690   3.470  15.405  1.00  0.00           H
+END

@@ -1,0 +1,90 @@
+project:
+  name: hg317-irc-mapping-barrier-calibrated-rep20
+  output_dir: outputs/hg317_irc_mapping_barrier_calibrated_replicates/rep20
+reaction:
+  metadata:
+    name: hg317_irc_mapping_barrier_calibrated_rep20
+    phase: enzyme
+    temperature_k: 300.0
+    pressure_bar: 1.0
+    notes: >
+      HG3.17 matched AMBER-state mapped-Hamiltonian PMF. Constant-H12 EVB is calibrated to the g-xTB IRC barrier.
+  atoms:
+    donor: 4548
+    proton: 4555
+    acceptor: 1954
+  substrate_atoms: [4540, 4541, 4542, 4543, 4544, 4545, 4546, 4547, 4548, 4549, 4550, 4551, 4552, 4553, 4554, 4555]
+states:
+  state1:
+    topology: prep/hg317_full_irc/state1_reactant_matched16.prmtop
+    coordinates: prep/hg317_full_irc/state1_reactant.inpcrd
+    format: amber
+  state2:
+    topology: prep/hg317_full_irc/state2_product_matched16.prmtop
+    coordinates: prep/hg317_full_irc/state1_reactant.inpcrd
+    format: amber
+evb:
+  coupling_model:
+    model: constant
+    parameters:
+      delta_alpha_kj_mol: 75
+      h12_kj_mol: 2393.44748258
+sampling:
+  mode: mapping
+  integrator:
+    name: LangevinMiddle
+    timestep_fs: 0.5
+    friction_per_ps: 1.0
+    seed: 531720
+  md:
+    equilibration_steps: 10000
+    production_steps: 400000
+    report_stride: 1000
+    save_stride: null
+    platform: CUDA
+    temperature_k: 300.0
+    nonbonded_method: PME
+    constraints: None
+    minimize_steps: 500
+    minimize_tolerance: 10.0
+  far_field_restraint:
+    enabled: true
+    radius_nm: 1.2
+    force_constant_kj_mol_nm2: 25.0
+  seed_relaxation:
+    enabled: true
+    minimization_steps: 500
+    equilibration_steps: 0
+    restraint_force_constant_kj_mol_nm2: 250.0
+    restraint_decay: [1.0, 0.5, 0.1, 0.0]
+  windows:
+    mapping:
+      lambda_values: [0, 0.025, 0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.225, 0.25, 0.275, 0.3, 0.325, 0.35, 0.375, 0.4, 0.425, 0.45, 0.475, 0.5, 0.525, 0.55, 0.575, 0.6, 0.625, 0.65, 0.675, 0.7, 0.725, 0.75, 0.775, 0.8, 0.825, 0.85, 0.875, 0.9, 0.925, 0.95, 0.975, 1]
+observables:
+  gap:
+    shifted: true
+  reaction_coordinates:
+    - name: proton_transfer_rc
+      kind: difference_of_distances
+      atom1: 4548
+      atom2: 4555
+      atom3: 1954
+      event_threshold_nm: 0.0
+  distances:
+    - name: donor_h
+      atom1: 4548
+      atom2: 4555
+    - name: h_acceptor
+      atom1: 4555
+      atom2: 1954
+analysis:
+  histogram:
+    bin_min_kj_mol: -100000.0
+    bin_max_kj_mol: 300000.0
+    n_bins: 500
+  pmf:
+    temperature_k: 300.0
+    zero_mode: reactant_min
+  uncertainty:
+    blocks: 5
+    bootstrap_samples: 200

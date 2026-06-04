@@ -1,0 +1,18 @@
+REMARK IRC frame 106, reactant-like substrate, includes transferred proton H197.
+HETATM    1 N1   SBR B   1      12.453   6.491  13.819  1.00  0.00           N
+HETATM    2 N2   SBR B   1      18.156   5.972  12.476  1.00  0.00           N
+HETATM    3 C1   SBR B   1      14.586   6.045  13.324  1.00  0.00           C
+HETATM    4 C2   SBR B   1      14.237   7.271  12.773  1.00  0.00           C
+HETATM    5 C3   SBR B   1      15.882   5.565  13.215  1.00  0.00           C
+HETATM    6 C4   SBR B   1      16.769   6.366  12.524  1.00  0.00           C
+HETATM    7 C5   SBR B   1      15.119   8.053  12.036  1.00  0.00           C
+HETATM    8 C6   SBR B   1      16.404   7.579  11.919  1.00  0.00           C
+HETATM    9 C7   SBR B   1      13.379   5.606  13.955  1.00  0.00           C
+HETATM   10 O1   SBR B   1      12.975   7.569  13.070  1.00  0.00           O
+HETATM   11 O2   SBR B   1      18.936   6.625  11.815  1.00  0.00           O
+HETATM   12 O3   SBR B   1      18.514   5.020  13.148  1.00  0.00           O
+HETATM   13 H1   SBR B   1      16.184   4.621  13.643  1.00  0.00           H
+HETATM   14 H2   SBR B   1      14.811   8.989  11.592  1.00  0.00           H
+HETATM   15 H3   SBR B   1      17.156   8.137  11.385  1.00  0.00           H
+HETATM   16 H4   SBR B   1      13.214   4.654  14.429  1.00  0.00           H
+END

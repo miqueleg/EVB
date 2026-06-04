@@ -1,0 +1,84 @@
+project:
+  name: hg317-evb-mapping
+  output_dir: outputs/hg317_evb_mapping
+reaction:
+  metadata:
+    name: HG3.17 Kemp eliminase EVB
+    phase: enzyme
+    temperature_k: 300.0
+    pressure_bar: 1.0
+    notes: Constant-H12 EVB calibrated to the HG3.17 g-xTB cluster profile.
+  atoms:
+    donor: 6
+    proton: 15
+    acceptor: 19
+  substrate_atoms: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+states:
+  state1:
+    topology: prep/kemp_qm_openmm/07_openmm_bundles/RC/system.xml
+    coordinates: prep/kemp_qm_openmm/07_openmm_bundles/RC/coordinates.pdb
+    format: openmm
+  state2:
+    topology: prep/kemp_qm_openmm/07_openmm_bundles/PROD/system.xml
+    coordinates: prep/kemp_qm_openmm/07_openmm_bundles/PROD/coordinates.pdb
+    format: openmm
+evb:
+  coupling_model:
+    model: constant
+    parameters:
+      delta_alpha_kj_mol: -53328.25448088075
+      h12_kj_mol: 49606.147558391305
+sampling:
+  mode: mapping
+  integrator:
+    name: LangevinMiddle
+    timestep_fs: 0.05
+    friction_per_ps: 1.0
+    seed: 31725
+  md:
+    equilibration_steps: 20
+    production_steps: 100
+    report_stride: 20
+    platform: CUDA
+    temperature_k: 300.0
+    nonbonded_method: PME
+    constraints: None
+    minimize_steps: 0
+    minimize_tolerance: 10.0
+  windows:
+    mapping:
+      lambda_values: [0.0, 0.25, 0.5, 0.75, 1.0]
+  seed_windows:
+    - window_id: w002
+      coordinates: prep/kemp_qm_openmm/05_templates/TS_solvated_template.pdb
+    - window_id: w003
+      coordinates: prep/kemp_qm_openmm/07_openmm_bundles/PROD/coordinates.pdb
+observables:
+  gap:
+    shifted: true
+  reaction_coordinates:
+    - name: proton_transfer_rc
+      kind: difference_of_distances
+      atom1: 6
+      atom2: 15
+      atom3: 19
+      event_threshold_nm: 0.0
+    - name: ring_opening_rc
+      kind: distance
+      atom1: 1
+      atom2: 11
+  distances:
+    - name: donor_h
+      atom1: 6
+      atom2: 15
+    - name: h_acceptor
+      atom1: 15
+      atom2: 19
+analysis:
+  histogram:
+    bin_min_kj_mol: -100000.0
+    bin_max_kj_mol: 300000.0
+    n_bins: 320
+  pmf:
+    temperature_k: 300.0
+    zero_mode: reactant_min

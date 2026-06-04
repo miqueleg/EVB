@@ -3,9 +3,9 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "kemp-evb"
+name = "openmm-evb"
 version = "0.1.0"
-description = "Proof-of-concept 2-state EVB driver for Kemp eliminase in OpenMM"
+description = "Reusable two-state EVB framework for OpenMM"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{name = "OpenAI Codex"}]
@@ -16,9 +16,13 @@ dependencies = [
 
 [project.optional-dependencies]
 openmm = ["openmm>=8.1"]
+analysis = ["pymbar>=4", "pandas>=2", "matplotlib>=3.8"]
+plumed = ["openmm-plumed>=2.0"]
 test = ["pytest>=8.0"]
+all = ["openmm>=8.1", "pymbar>=4", "pandas>=2", "matplotlib>=3.8", "openmm-plumed>=2.0", "pytest>=8.0"]
 
 [project.scripts]
+evb = "evb.cli:main"
 kemp-evb = "kemp_evb.cli:main"
 
 [tool.setuptools]
@@ -26,3 +30,6 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]

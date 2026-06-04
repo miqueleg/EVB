@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")/../.."
+export PYTHONPATH=src
+
+python scripts/summarize_hg317_mapping_replicates.py
