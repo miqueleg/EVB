@@ -1,3 +1,0 @@
-[console_scripts]
-evb = evb.cli:main
-kemp-evb = kemp_evb.cli:main

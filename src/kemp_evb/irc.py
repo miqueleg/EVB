@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import re
 import csv
 import json
-import re
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 
 import numpy as np
@@ -12,6 +12,7 @@ import numpy as np
 HARTREE_TO_KCAL_MOL = 627.5094740631
 HARTREE_TO_KJ_MOL = 2625.4996394799
 _ENERGY_PATTERN = re.compile(r"\benergy:\s*([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[Ee][-+]?\d+)?)")
+_ROLE_PATTERN = re.compile(r"\b(RC|TS|PROD|PRODUCT|REACTANT)\b", re.IGNORECASE)
 
 
 @dataclass(slots=True)
@@ -20,7 +21,43 @@ class IRCFrame:
     symbols: list[str]
     coordinates_angstrom: np.ndarray
     comment: str
-    energy_hartree: float | None
+    energy_hartree: float | None = None
+    role: str | None = None
+    original_index: int | None = None
+
+    @property
+    def coordinates_nm(self) -> np.ndarray:
+        return self.coordinates_angstrom * 0.1
+
+
+@dataclass(slots=True)
+class CanonicalIRCPath:
+    frames: list[IRCFrame]
+    original_order: str
+    canonical_order: str
+    original_to_canonical: dict[int, int]
+    canonical_to_original: dict[int, int]
+    rc_frame: int
+    ts_frame: int
+    product_frame: int
+    warnings: list[str]
+
+
+@dataclass(slots=True)
+class ReferenceProfile:
+    units: str
+    rc_kj_mol: float
+    ts_kj_mol: float
+    product_kj_mol: float
+    source_label: str | None = None
+
+    @property
+    def target_barrier_kj_mol(self) -> float:
+        return self.ts_kj_mol - self.rc_kj_mol
+
+    @property
+    def target_reaction_free_energy_kj_mol(self) -> float:
+        return self.product_kj_mol - self.rc_kj_mol
 
 
 @dataclass(slots=True)
@@ -55,7 +92,11 @@ class FixedAtomCandidate:
 
 
 def read_irc_xyz(path: str | Path) -> list[IRCFrame]:
-    """Read a multi-frame XYZ IRC with energies stored in comment lines."""
+    """Read a multi-frame XYZ IRC.
+
+    Energies in comments are optional metadata only. They are never treated as
+    thermodynamic reference energies by this parser.
+    """
     lines = Path(path).read_text(encoding="utf-8").splitlines()
     frames: list[IRCFrame] = []
     i = 0
@@ -71,6 +112,7 @@ def read_irc_xyz(path: str | Path) -> list[IRCFrame]:
             raise ValueError(f"Missing comment line after frame atom count at line {i + 1}.")
         comment = lines[i + 1].strip()
         match = _ENERGY_PATTERN.search(comment)
+        role = infer_role_from_comment(comment)
         symbols: list[str] = []
         coords: list[list[float]] = []
         atom_start = i + 2
@@ -90,6 +132,8 @@ def read_irc_xyz(path: str | Path) -> list[IRCFrame]:
                 coordinates_angstrom=np.asarray(coords, dtype=float),
                 comment=comment,
                 energy_hartree=None if match is None else float(match.group(1)),
+                role=role,
+                original_index=len(frames),
             )
         )
         i = atom_end
@@ -103,6 +147,119 @@ def read_irc_xyz(path: str | Path) -> list[IRCFrame]:
         if frame.symbols != symbols:
             raise ValueError(f"Frame {frame.index} has a different atom ordering or element sequence.")
     return frames
+
+
+def infer_role_from_comment(comment: str) -> str | None:
+    match = _ROLE_PATTERN.search(comment)
+    if match is None:
+        return None
+    role = match.group(1).upper()
+    if role == "REACTANT":
+        return "RC"
+    if role == "PRODUCT":
+        return "PROD"
+    return role
+
+
+def canonicalize_irc_path(
+    frames: list[IRCFrame],
+    order: str = "auto",
+    rc_frame: int | str | None = "auto",
+    ts_frame: int | str | None = "auto",
+    product_frame: int | str | None = "auto",
+) -> CanonicalIRCPath:
+    if not frames:
+        raise ValueError("Cannot canonicalize an empty IRC path.")
+    order = order.lower()
+    if order not in {"rc_ts_prod", "prod_ts_rc", "auto"}:
+        raise ValueError("irc.order must be one of: rc_ts_prod, prod_ts_rc, auto.")
+    warnings: list[str] = []
+    if order == "auto":
+        order = _infer_order(frames)
+    if order == "prod_ts_rc":
+        canonical_frames = list(reversed(frames))
+    else:
+        canonical_frames = list(frames)
+    canonicalized = [
+        replace(frame, index=canonical_index, original_index=frame.original_index if frame.original_index is not None else frame.index)
+        for canonical_index, frame in enumerate(canonical_frames)
+    ]
+    original_to_canonical = {frame.original_index if frame.original_index is not None else frame.index: frame.index for frame in canonicalized}
+    canonical_to_original = {frame.index: frame.original_index if frame.original_index is not None else frame.index for frame in canonicalized}
+
+    rc_idx = _select_frame("RC", canonicalized, original_to_canonical, rc_frame, default=0, warnings=warnings)
+    product_idx = _select_frame("PROD", canonicalized, original_to_canonical, product_frame, default=len(canonicalized) - 1, warnings=warnings)
+    ts_default = len(canonicalized) // 2
+    ts_idx = _select_frame("TS", canonicalized, original_to_canonical, ts_frame, default=ts_default, warnings=warnings)
+    if ts_frame in {None, "auto"} and not any(frame.role == "TS" for frame in canonicalized):
+        warnings.append(
+            f"No TS label found in IRC comments; selected middle canonical frame {ts_idx}. "
+            "Check this manually or set irc.ts_frame explicitly."
+        )
+    return CanonicalIRCPath(
+        frames=canonicalized,
+        original_order=order,
+        canonical_order="rc_ts_prod",
+        original_to_canonical=original_to_canonical,
+        canonical_to_original=canonical_to_original,
+        rc_frame=rc_idx,
+        ts_frame=ts_idx,
+        product_frame=product_idx,
+        warnings=warnings,
+    )
+
+
+def parse_reference_profile(units: str, rc: float, ts: float, product: float, source_label: str | None = None) -> ReferenceProfile:
+    factor = _unit_factor_to_kj(units)
+    return ReferenceProfile(
+        units=units,
+        rc_kj_mol=float(rc) * factor,
+        ts_kj_mol=float(ts) * factor,
+        product_kj_mol=float(product) * factor,
+        source_label=source_label,
+    )
+
+
+def _unit_factor_to_kj(units: str) -> float:
+    normalized = units.lower().replace(" ", "")
+    if normalized in {"kj/mol", "kjmol", "kj_mol", "kj"}:
+        return 1.0
+    if normalized in {"kcal/mol", "kcalmol", "kcal_mol", "kcal"}:
+        return 4.184
+    raise ValueError(f"Unsupported reference_profile.units {units!r}; use kcal/mol or kJ/mol.")
+
+
+def _infer_order(frames: list[IRCFrame]) -> str:
+    labeled = {frame.role: frame.index for frame in frames if frame.role in {"RC", "TS", "PROD"}}
+    if {"RC", "TS", "PROD"} <= set(labeled):
+        if labeled["RC"] < labeled["TS"] < labeled["PROD"]:
+            return "rc_ts_prod"
+        if labeled["PROD"] < labeled["TS"] < labeled["RC"]:
+            return "prod_ts_rc"
+    raise ValueError(
+        "Could not infer IRC order confidently. Set irc.order to 'rc_ts_prod' or 'prod_ts_rc', "
+        "or provide comments/indices that identify RC, TS, and PROD."
+    )
+
+
+def _select_frame(
+    role: str,
+    frames: list[IRCFrame],
+    original_to_canonical: dict[int, int],
+    requested: int | str | None,
+    default: int,
+    warnings: list[str],
+) -> int:
+    if requested not in {None, "auto"}:
+        original_index = int(requested)
+        if original_index not in original_to_canonical:
+            raise ValueError(f"Requested original {role} frame {original_index} is outside the IRC frame range.")
+        return original_to_canonical[original_index]
+    labeled = [frame.index for frame in frames if frame.role == role]
+    if labeled:
+        return labeled[0]
+    warnings.append(f"No {role} label or explicit frame supplied; using canonical frame {default}.")
+    return default
 
 
 def summarize_irc(frames: list[IRCFrame]) -> IRCSummary:

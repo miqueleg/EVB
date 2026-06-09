@@ -1,0 +1,41 @@
+{
+  "description": "HG3.17 EVB-ready short gap umbrella test centered on EVB mixing gap=0, with extended E2 basin sampling.",
+  "n_replicas": 2,
+  "n_windows": 120,
+  "center_strategy": "evb_mixing_centered_piecewise_linear",
+  "role_gap_kj_mol": {
+    "E1": -30862.401586761207,
+    "IRC_TS_geometry": -1688.8911191494299,
+    "EVB_mixing": 0.0,
+    "E2": 2850.174300612791
+  },
+  "role_gap_kcal_mol": {
+    "E1": -7376.291010220173,
+    "IRC_TS_geometry": -403.6546651886782,
+    "EVB_mixing": 0.0,
+    "E2": 681.2080068386211
+  },
+  "basin_extension_kj_mol": 2000.0,
+  "timestep_fs": 0.5,
+  "production_steps": 20000,
+  "production_ps_per_window": 10.0,
+  "equilibration_steps": 1000,
+  "minimize_steps": 50,
+  "report_stride": 250,
+  "force_constant_kj_mol2": 1e-05,
+  "expected_purpose": "Diagnostic test for overlap and E2 plateau; not a production PMF.",
+  "configs": [
+    {
+      "replica": "rep01",
+      "gpu_device_index": "0",
+      "config": "runs/hg317_evb_ready_mixing_centered_gap_pmf_test/configs/rep01.yaml",
+      "seed": 740001
+    },
+    {
+      "replica": "rep02",
+      "gpu_device_index": "1",
+      "config": "runs/hg317_evb_ready_mixing_centered_gap_pmf_test/configs/rep02.yaml",
+      "seed": 740002
+    }
+  ]
+}

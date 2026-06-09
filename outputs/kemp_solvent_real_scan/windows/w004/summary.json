@@ -1,8 +1,0 @@
-{
-  "window_id": "w004",
-  "lambda_value": 1.0,
-  "n_frames": 20,
-  "final_step": 0,
-  "final_time_ps": 0.0,
-  "output_dir": "outputs/kemp_solvent_real_scan/windows/w004"
-}

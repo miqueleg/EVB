@@ -203,12 +203,43 @@ class MappingWindows:
 class GapUmbrellaWindows:
     centers_kj_mol: list[float] = field(default_factory=list)
     force_constant_kj_mol2: float | None = None
+    from_irc_scan: bool = False
+    n_windows: int | None = None
+    center_strategy: str = "evb_mixing"
+    mixing_gap_kj_mol: float = 0.0
+    basin_extension_kj_mol: float = 0.0
+    allow_pathological_irc_windows: bool = False
 
 
 @dataclass(slots=True)
 class ProtonTransferUmbrellaWindows:
     centers_nm: list[float] = field(default_factory=list)
     force_constant_kj_mol_nm2: float | None = None
+
+
+@dataclass(slots=True)
+class MetadynamicsSettings:
+    cv: str = "gap"
+    min_value: float | None = None
+    max_value: float | None = None
+    bias_width: float | None = None
+    height_kj_mol: float = 1.2
+    bias_factor: float = 10.0
+    frequency: int = 500
+    save_frequency: int | None = 5000
+    bias_dir: str = "bias"
+    grid_width: int | None = None
+    wall_force_constant_kj_mol2: float | None = None
+    convergence_check_interval: int | None = None
+    convergence_tolerance_kj_mol: float | None = None
+    convergence_consecutive_checks: int = 3
+    convergence_min_steps: int = 0
+    convergence_ts_window_kj_mol: float | None = None
+    convergence_min_ts_samples: int = 0
+    convergence_min_weight2: float | None = None
+    convergence_min_mixing_samples: int = 0
+    convergence_mixing_weight2_min: float = 0.2
+    convergence_mixing_weight2_max: float = 0.8
 
 
 @dataclass(slots=True)
@@ -236,6 +267,7 @@ class SamplingSettings:
     far_field_restraint: FarFieldRestraintSettings = field(default_factory=FarFieldRestraintSettings)
     umbrella_ramp: UmbrellaRampSettings = field(default_factory=UmbrellaRampSettings)
     seed_relaxation: SeedRelaxationSettings = field(default_factory=SeedRelaxationSettings)
+    metadynamics: MetadynamicsSettings = field(default_factory=MetadynamicsSettings)
     windows: SamplingWindows = field(default_factory=SamplingWindows)
     seed_windows: list[WindowSeedDefinition] = field(default_factory=list)
 
@@ -257,6 +289,55 @@ class PMFSettings:
 class BarrierSettings:
     reactant_region: tuple[float, float] | None = None
     product_region: tuple[float, float] | None = None
+    derive_regions_from_irc: bool = False
+    allow_sign_fallback: bool = False
+
+
+@dataclass(slots=True)
+class IRCRelaxationSettings:
+    enabled: bool = False
+    mode: str = "mapped"
+    platform: str | None = None
+    require_platform: bool = True
+    pre_relaxation_enabled: bool = True
+    solvent_residue_names: list[str] = field(default_factory=lambda: ["HOH", "WAT", "SOL", "TIP3", "TIP3P"])
+    solvent_minimization_steps: int = 500
+    protein_minimization_steps: int = 500
+    pre_relax_mobile_radius_nm: float = 0.8
+    pre_relax_nonmobile_restraint_kj_mol_nm2: float = 5000.0
+    fix_alpha_carbons: bool = True
+    alpha_carbon_restraint_kj_mol_nm2: float = 10000.0
+    frame_stride: int = 1
+    frame_indices: list[int] = field(default_factory=list)
+    minimization_steps: int = 500
+    minimization_tolerance_kj_mol_nm: float = 10.0
+    mobile_atoms: list[int] = field(default_factory=list)
+    mobile_radius_nm: float = 0.45
+    restrain_nonmobile: bool = True
+    nonmobile_restraint_kj_mol_nm2: float = 2500.0
+    irc_atom_restraint_kj_mol_nm2: float = 250.0
+    use_relaxed_for_scan: bool = True
+    output_subdir: str = "irc_relaxed_seeds"
+
+
+@dataclass(slots=True)
+class IRCSettings:
+    path: str | None = None
+    order: str = "auto"
+    rc_frame: int | str | None = "auto"
+    ts_frame: int | str | None = "auto"
+    product_frame: int | str | None = "auto"
+    embedding: dict[str, Any] = field(default_factory=dict)
+    relaxation: IRCRelaxationSettings = field(default_factory=IRCRelaxationSettings)
+
+
+@dataclass(slots=True)
+class ReferenceProfileSettings:
+    units: str = "kJ/mol"
+    rc: float | None = None
+    ts: float | None = None
+    product: float | None = None
+    source_label: str | None = None
 
 
 @dataclass(slots=True)
@@ -300,6 +381,7 @@ class FitSettings:
 @dataclass(slots=True)
 class PlumedSettings:
     enabled: bool = False
+    mode: str = "plain"
     script: str | None = None
     script_file: str | None = None
     output_colvar: str = "COLVAR"
@@ -316,6 +398,7 @@ class EVBConfig:
     simulation: SimulationSettings = field(default_factory=SimulationSettings)
     output_dir: str = "outputs"
     start_state: str = "state1"
+    start_coordinates: str | None = None
     project: ProjectSettings = field(default_factory=ProjectSettings)
     reaction: ReactionSettings = field(default_factory=ReactionSettings)
     observables: ObservableSettings = field(default_factory=ObservableSettings)
@@ -323,6 +406,8 @@ class EVBConfig:
     analysis: AnalysisSettings = field(default_factory=AnalysisSettings)
     fit: FitSettings = field(default_factory=FitSettings)
     plumed: PlumedSettings = field(default_factory=PlumedSettings)
+    irc: IRCSettings = field(default_factory=IRCSettings)
+    reference_profile: ReferenceProfileSettings | None = None
 
 
 def _coerce_state_files(data: dict[str, Any]) -> StateFiles:
@@ -373,7 +458,39 @@ def _coerce_barrier_regions(data: dict[str, Any] | None) -> BarrierSettings:
         return BarrierSettings()
     reactant_region = tuple(data["reactant_region"]) if data.get("reactant_region") else None
     product_region = tuple(data["product_region"]) if data.get("product_region") else None
-    return BarrierSettings(reactant_region=reactant_region, product_region=product_region)
+    return BarrierSettings(
+        reactant_region=reactant_region,
+        product_region=product_region,
+        derive_regions_from_irc=bool(data.get("derive_regions_from_irc", False)),
+        allow_sign_fallback=bool(data.get("allow_sign_fallback", False)),
+    )
+
+
+def _coerce_irc_settings(data: dict[str, Any] | None) -> IRCSettings:
+    if not data:
+        return IRCSettings()
+    relaxation_payload = data.get("relaxation", {})
+    return IRCSettings(
+        path=data.get("path"),
+        order=data.get("order", "auto"),
+        rc_frame=data.get("rc_frame", "auto"),
+        ts_frame=data.get("ts_frame", "auto"),
+        product_frame=data.get("product_frame", "auto"),
+        embedding=dict(data.get("embedding", {})),
+        relaxation=IRCRelaxationSettings(**relaxation_payload) if relaxation_payload else IRCRelaxationSettings(),
+    )
+
+
+def _coerce_reference_profile(data: dict[str, Any] | None) -> ReferenceProfileSettings | None:
+    if not data:
+        return None
+    return ReferenceProfileSettings(
+        units=data.get("units", "kJ/mol"),
+        rc=data.get("rc"),
+        ts=data.get("ts"),
+        product=data.get("product"),
+        source_label=data.get("source_label"),
+    )
 
 
 def _from_legacy_mapping(data: dict[str, Any]) -> EVBConfig:
@@ -436,6 +553,7 @@ def _from_legacy_mapping(data: dict[str, Any]) -> EVBConfig:
         far_field_restraint=FarFieldRestraintSettings(enabled=False),
         umbrella_ramp=UmbrellaRampSettings(enabled=False),
         seed_relaxation=SeedRelaxationSettings(enabled=False),
+        metadynamics=MetadynamicsSettings(),
         seed_windows=[],
     )
     return EVBConfig(
@@ -447,10 +565,13 @@ def _from_legacy_mapping(data: dict[str, Any]) -> EVBConfig:
         simulation=simulation,
         output_dir=project.output_dir,
         start_state=data.get("start_state", "state1"),
+        start_coordinates=data.get("start_coordinates"),
         project=project,
         reaction=reaction,
         observables=observables,
         sampling=sampling,
+        irc=IRCSettings(),
+        reference_profile=None,
     )
 
 
@@ -497,6 +618,7 @@ def _from_modern_mapping(data: dict[str, Any]) -> EVBConfig:
         far_field_restraint=FarFieldRestraintSettings(**sampling_payload.get("far_field_restraint", {})),
         umbrella_ramp=UmbrellaRampSettings(**sampling_payload.get("umbrella_ramp", {})),
         seed_relaxation=SeedRelaxationSettings(**sampling_payload.get("seed_relaxation", {})),
+        metadynamics=MetadynamicsSettings(**sampling_payload.get("metadynamics", {})),
         windows=SamplingWindows(
             mapping=MappingWindows(**windows_payload.get("mapping", {})),
             gap_umbrella=GapUmbrellaWindows(**windows_payload.get("gap_umbrella", {})),
@@ -553,6 +675,8 @@ def _from_modern_mapping(data: dict[str, Any]) -> EVBConfig:
         scan=FitScanSettings(**fit_payload.get("scan", {})),
     )
     plumed = PlumedSettings(**data.get("plumed", {}))
+    irc = _coerce_irc_settings(data.get("irc"))
+    reference_profile = _coerce_reference_profile(data.get("reference_profile"))
     _validate_modern_payload(data, evb_payload, coupling_payload)
 
     return EVBConfig(
@@ -564,6 +688,7 @@ def _from_modern_mapping(data: dict[str, Any]) -> EVBConfig:
         simulation=simulation,
         output_dir=project.output_dir,
         start_state=data.get("start_state", "state1"),
+        start_coordinates=data.get("start_coordinates"),
         project=project,
         reaction=reaction,
         observables=observables,
@@ -571,6 +696,8 @@ def _from_modern_mapping(data: dict[str, Any]) -> EVBConfig:
         analysis=analysis,
         fit=fit,
         plumed=plumed,
+        irc=irc,
+        reference_profile=reference_profile,
     )
 
 
@@ -601,17 +728,25 @@ def validate_config(config: EVBConfig) -> list[str]:
         errors.append("evb.coupling_model.parameters.delta_alpha_kj_mol is required.")
     if config.evb_parameters.h12 is None:
         errors.append("evb.coupling_model.parameters.h12_kj_mol is required.")
-    if config.sampling.mode not in {"mapping", "gap_umbrella", "proton_transfer_umbrella"}:
+    if config.sampling.mode not in {"mapping", "gap_umbrella", "proton_transfer_umbrella", "gap_metadynamics"}:
         errors.append(f"Unsupported sampling.mode {config.sampling.mode!r}.")
     if config.sampling.mode == "mapping" and not config.sampling.windows.mapping.lambda_values:
         errors.append("mapping mode requires sampling.windows.mapping.lambda_values.")
     if config.sampling.mode == "gap_umbrella":
-        if not config.sampling.windows.gap_umbrella.centers_kj_mol:
+        if not config.sampling.windows.gap_umbrella.centers_kj_mol and not config.sampling.windows.gap_umbrella.from_irc_scan:
             errors.append("gap_umbrella mode requires sampling.windows.gap_umbrella.centers_kj_mol.")
         if config.sampling.windows.gap_umbrella.force_constant_kj_mol2 is None:
             errors.append("gap_umbrella mode requires sampling.windows.gap_umbrella.force_constant_kj_mol2.")
     if config.plumed.enabled and not (config.plumed.script or config.plumed.script_file):
         errors.append("plumed.enabled requires plumed.script or plumed.script_file.")
+    if config.plumed.mode not in {"plain", "metad", "opes", "opes_metad"}:
+        errors.append("plumed.mode must be one of: plain, metad, opes, opes_metad.")
+    if config.sampling.mode == "gap_metadynamics":
+        meta = config.sampling.metadynamics
+        if meta.cv != "gap":
+            errors.append("gap_metadynamics currently supports sampling.metadynamics.cv: gap only.")
+        if meta.min_value is None or meta.max_value is None or meta.bias_width is None:
+            errors.append("gap_metadynamics requires min_value, max_value, and bias_width in kJ/mol.")
     return errors
 
 
@@ -626,7 +761,10 @@ def _validate_modern_payload(data: dict[str, Any], evb_payload: dict[str, Any], 
         "analysis",
         "fit",
         "plumed",
+        "irc",
+        "reference_profile",
         "start_state",
+        "start_coordinates",
     }
     extra = sorted(set(data) - allowed_top_level)
     if extra:

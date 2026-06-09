@@ -1,0 +1,62 @@
+{
+  "description": "Final HG3.17 EVB-ready gap PMF pipeline: range from nearest PMF minima around EVB TS plus buffer, dense near gap=0.",
+  "basis": "Minima detected from outputs/hg317_evb_ready_gap_m4000_p4000_robust_test/summary/summary.json and exploratory PMF scan.",
+  "left_minimum_kcal_mol": -1850.0,
+  "right_minimum_kcal_mol": 1250.0,
+  "buffer_kcal_mol": 800.0,
+  "gap_range_kcal_mol": [
+    -2650.0,
+    2050.0
+  ],
+  "dense_ts_region_kcal_mol": [
+    -600.0,
+    600.0
+  ],
+  "outer_spacing_kcal_mol": 50.0,
+  "ts_region_spacing_kcal_mol": 25.0,
+  "n_replicas": 4,
+  "n_windows": 119,
+  "timestep_fs": 0.5,
+  "equilibration_steps": 5000,
+  "production_steps": 100000,
+  "production_ps_per_window": 50.0,
+  "minimize_steps": 100,
+  "report_stride": 1000,
+  "force_constant_kj_mol2": 1e-05,
+  "barrier_regions_kcal_mol": {
+    "left_minimum_region": [
+      -2000.0,
+      -1700.0
+    ],
+    "right_minimum_region": [
+      1100.0,
+      1400.0
+    ]
+  },
+  "configs": [
+    {
+      "replica": "rep01",
+      "gpu_device_index": "0",
+      "config": "runs/hg317_evb_ready_final_gap_pmf/configs/rep01.yaml",
+      "seed": 760001
+    },
+    {
+      "replica": "rep02",
+      "gpu_device_index": "1",
+      "config": "runs/hg317_evb_ready_final_gap_pmf/configs/rep02.yaml",
+      "seed": 760002
+    },
+    {
+      "replica": "rep03",
+      "gpu_device_index": "0",
+      "config": "runs/hg317_evb_ready_final_gap_pmf/configs/rep03.yaml",
+      "seed": 760003
+    },
+    {
+      "replica": "rep04",
+      "gpu_device_index": "1",
+      "config": "runs/hg317_evb_ready_final_gap_pmf/configs/rep04.yaml",
+      "seed": 760004
+    }
+  ]
+}

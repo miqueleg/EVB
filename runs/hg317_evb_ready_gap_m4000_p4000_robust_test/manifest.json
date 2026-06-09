@@ -1,0 +1,45 @@
+{
+  "description": "HG3.17 EVB-ready robust diagnostic gap umbrella test from -4000 to +4000 kcal/mol, centered on EVB mixing gap=0.",
+  "n_replicas": 4,
+  "n_windows": 161,
+  "center_strategy": "linear_gap_m4000_p4000_kcal_centered_on_evb_mixing",
+  "gap_range_kcal_mol": [
+    -4000.0,
+    4000.0
+  ],
+  "gap_spacing_kcal_mol": 50.0,
+  "timestep_fs": 0.5,
+  "equilibration_steps": 2500,
+  "production_steps": 50000,
+  "production_ps_per_window": 25.0,
+  "minimize_steps": 50,
+  "report_stride": 500,
+  "force_constant_kj_mol2": 1e-05,
+  "expected_runtime_note": "Runs two replicas concurrently on two GPUs, then the next two replicas. Estimate roughly 6-8 hours total from previous timings.",
+  "configs": [
+    {
+      "replica": "rep01",
+      "gpu_device_index": "0",
+      "config": "runs/hg317_evb_ready_gap_m4000_p4000_robust_test/configs/rep01.yaml",
+      "seed": 750001
+    },
+    {
+      "replica": "rep02",
+      "gpu_device_index": "1",
+      "config": "runs/hg317_evb_ready_gap_m4000_p4000_robust_test/configs/rep02.yaml",
+      "seed": 750002
+    },
+    {
+      "replica": "rep03",
+      "gpu_device_index": "0",
+      "config": "runs/hg317_evb_ready_gap_m4000_p4000_robust_test/configs/rep03.yaml",
+      "seed": 750003
+    },
+    {
+      "replica": "rep04",
+      "gpu_device_index": "1",
+      "config": "runs/hg317_evb_ready_gap_m4000_p4000_robust_test/configs/rep04.yaml",
+      "seed": 750004
+    }
+  ]
+}

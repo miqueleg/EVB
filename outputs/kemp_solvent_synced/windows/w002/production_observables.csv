@@ -1,2 +1,0 @@
-frame,step,time_ps,window_id,lambda,E1_kj_mol,E2_kj_mol,delta_e_kj_mol,delta_e_shifted_kj_mol,Eevb_kj_mol,w1,w2,donor_h,h_acceptor
-0,0,0.0,w002,1.0,161186.40718353514,-37772.82535275212,198959.23253628725,198959.23253628725,-37772.825352752116,0.0,1.0,0.1086835919657862,0.2847039235806301

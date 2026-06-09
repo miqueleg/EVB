@@ -1,0 +1,36 @@
+{
+  "description": "HG3.17 EVB-ready short TS-focused gap umbrella test. E1/TS/E2 centers derived from IRC fit report.",
+  "n_replicas": 2,
+  "n_windows": 40,
+  "center_strategy": "ts_focused_from_irc_role_gaps",
+  "role_gap_kj_mol": {
+    "E1": -30862.401586761207,
+    "TS": -1688.8911191494299,
+    "E2": 2850.174300612791
+  },
+  "role_gap_kcal_mol": {
+    "E1": -7376.291010220173,
+    "TS": -403.6546651886782,
+    "E2": 681.2080068386211
+  },
+  "timestep_fs": 0.5,
+  "production_steps": 50000,
+  "production_ps_per_window": 25.0,
+  "equilibration_steps": 2500,
+  "minimize_steps": 100,
+  "force_constant_kj_mol2": 1e-05,
+  "configs": [
+    {
+      "replica": "rep01",
+      "gpu_device_index": "0",
+      "config": "runs/hg317_evb_ready_tsfocused_gap_pmf_test/configs/rep01.yaml",
+      "seed": 730001
+    },
+    {
+      "replica": "rep02",
+      "gpu_device_index": "1",
+      "config": "runs/hg317_evb_ready_tsfocused_gap_pmf_test/configs/rep02.yaml",
+      "seed": 730002
+    }
+  ]
+}

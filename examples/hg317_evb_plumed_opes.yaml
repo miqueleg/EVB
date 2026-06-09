@@ -1,9 +1,9 @@
 project:
-  name: hg317-evb-plumed-metad
-  output_dir: outputs/hg317_evb_plumed_metad
+  name: hg317-evb-plumed-opes
+  output_dir: outputs/hg317_evb_plumed_opes
 reaction:
   metadata:
-    name: HG3.17 Kemp eliminase EVB PLUMED metadynamics
+    name: HG3.17 Kemp eliminase EVB PLUMED OPES
     phase: enzyme
     temperature_k: 300.0
     pressure_bar: 1.0
@@ -34,7 +34,7 @@ sampling:
     name: LangevinMiddle
     timestep_fs: 0.5
     friction_per_ps: 1.0
-    seed: 31725
+    seed: 31726
   md:
     production_steps: 200000
     report_stride: 500
@@ -46,21 +46,20 @@ sampling:
     minimize_steps: 100
   windows:
     mapping:
-      lambda_values: [0.0]
+      lambda_values: [0.5]
 plumed:
   enabled: true
-  mode: metad
+  mode: opes
   restart: true
   output_colvar: COLVAR
   script: |
     # PLUMED atom indices are 1-based. OpenMM/Python indices are 0-based.
-    # This biases the proton-transfer geometry, not the internal EVB gap.
+    # OPES here biases the proton-transfer geometry, not the internal EVB gap.
     d_donor_h: DISTANCE ATOMS=4549,4556
     d_h_acceptor: DISTANCE ATOMS=4556,1955
     pt_rc: COMBINE ARG=d_donor_h,d_h_acceptor COEFFICIENTS=1,-1 PERIODIC=NO
-    metad: METAD ARG=pt_rc PACE=500 HEIGHT=1.2 SIGMA=0.02 BIASFACTOR=10 TEMP=300 FILE=HILLS
-    PRINT ARG=d_donor_h,d_h_acceptor,pt_rc,metad.bias FILE=COLVAR STRIDE=500
-
+    opes: OPES_METAD ARG=pt_rc PACE=500 SIGMA=0.02 BARRIER=40 TEMP=300 STATE_WFILE=STATE STATE_WSTRIDE=1000
+    PRINT ARG=d_donor_h,d_h_acceptor,pt_rc,opes.bias,opes.rct,opes.neff,opes.nker FILE=COLVAR STRIDE=500
 observables:
   gap:
     shifted: true

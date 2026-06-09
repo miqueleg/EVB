@@ -24,11 +24,12 @@ sampling:
       lambda_values: [0.5]
 plumed:
   enabled: true
+  mode: opes
   restart: true
   output_colvar: COLVAR
   script: |
     # PLUMED atom indices are 1-based. This biases geometrical CVs, not the EVB energy gap.
     d_break: DISTANCE ATOMS=1,2
     d_form: DISTANCE ATOMS=2,3
-    OPES_METAD ARG=d_break,d_form PACE=500 SIGMA=0.02,0.02 BARRIER=40 TEMP=300 STATE_WFILE=STATE STATE_WSTRIDE=1000 KERNELS=KERNELS
+    opes: OPES_METAD ARG=d_break,d_form PACE=500 SIGMA=0.02,0.02 BARRIER=40 TEMP=300 STATE_WFILE=STATE STATE_WSTRIDE=1000
     PRINT ARG=d_break,d_form,opes.bias FILE=COLVAR STRIDE=100

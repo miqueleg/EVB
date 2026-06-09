@@ -1,13 +1,13 @@
 project:
-  name: hg317-evb-plumed-metad
-  output_dir: outputs/hg317_evb_plumed_metad
+  name: hg317-evb-gap-metad
+  output_dir: outputs/hg317_evb_gap_metad
 reaction:
   metadata:
-    name: HG3.17 Kemp eliminase EVB PLUMED metadynamics
+    name: HG3.17 Kemp eliminase native EVB gap metadynamics
     phase: enzyme
     temperature_k: 300.0
     pressure_bar: 1.0
-    notes: PLUMED biases geometrical CVs only; the EVB energy gap remains a native OpenMM observable.
+    notes: Native OpenMM well-tempered metadynamics on gap = E1 - E2 - delta_alpha.
   atoms:
     donor: 4548
     proton: 4555
@@ -29,38 +29,43 @@ evb:
       delta_alpha_kj_mol: 307.1983003827954
       h12_kj_mol: 568.4342017631922
 sampling:
-  mode: mapping
+  mode: gap_metadynamics
   integrator:
     name: LangevinMiddle
-    timestep_fs: 0.5
-    friction_per_ps: 1.0
-    seed: 31725
+    timestep_fs: 0.25
+    friction_per_ps: 5.0
+    seed: 31727
   md:
-    production_steps: 200000
-    report_stride: 500
-    save_stride: 5000
+    production_steps: 20000000
+    report_stride: 1000
+    save_stride: 10000
     platform: CUDA
     temperature_k: 300.0
     nonbonded_method: PME
     constraints: None
     minimize_steps: 100
-  windows:
-    mapping:
-      lambda_values: [0.0]
-plumed:
-  enabled: true
-  mode: metad
-  restart: true
-  output_colvar: COLVAR
-  script: |
-    # PLUMED atom indices are 1-based. OpenMM/Python indices are 0-based.
-    # This biases the proton-transfer geometry, not the internal EVB gap.
-    d_donor_h: DISTANCE ATOMS=4549,4556
-    d_h_acceptor: DISTANCE ATOMS=4556,1955
-    pt_rc: COMBINE ARG=d_donor_h,d_h_acceptor COEFFICIENTS=1,-1 PERIODIC=NO
-    metad: METAD ARG=pt_rc PACE=500 HEIGHT=1.2 SIGMA=0.02 BIASFACTOR=10 TEMP=300 FILE=HILLS
-    PRINT ARG=d_donor_h,d_h_acceptor,pt_rc,metad.bias FILE=COLVAR STRIDE=500
-
+  metadynamics:
+    cv: gap
+    # kJ/mol. This covers the observed E1 basin and the EVB mixing region.
+    min_value: -25000.0
+    max_value: 25000.0
+    bias_width: 750.0
+    height_kj_mol: 1.0
+    bias_factor: 15.0
+    frequency: 1000
+    save_frequency: 10000
+    bias_dir: bias
+    wall_force_constant_kj_mol2: 0.000001
+    convergence_check_interval: 50000
+    convergence_tolerance_kj_mol: 1.0
+    convergence_consecutive_checks: 3
+    convergence_min_steps: 1000000
+    convergence_ts_window_kj_mol: 1500.0
+    convergence_min_ts_samples: 200
+    convergence_min_weight2: 0.2
+    convergence_min_mixing_samples: 100
+    convergence_mixing_weight2_min: 0.2
+    convergence_mixing_weight2_max: 0.8
 observables:
   gap:
     shifted: true

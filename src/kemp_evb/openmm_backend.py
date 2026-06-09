@@ -515,6 +515,18 @@ def build_proton_transfer_cv_force(donor_index: int, proton_index: int, acceptor
     return cv_force
 
 
+def build_evb_gap_cv_force(state1_system: Any, state2_system: Any, delta_alpha: float, prefix: str = "gap"):
+    """Build a CustomCVForce for gap = E1 - E2 - delta_alpha in kJ/mol."""
+    _require_openmm()
+    state1_force = _build_state_energy_force(state1_system, f"{prefix}_s1")
+    state2_force = _build_state_energy_force(state2_system, f"{prefix}_s2")
+    gap_force = openmm.CustomCVForce("e1 - e2 - delta_alpha")
+    gap_force.addCollectiveVariable("e1", state1_force)
+    gap_force.addCollectiveVariable("e2", state2_force)
+    gap_force.addGlobalParameter("delta_alpha", delta_alpha)
+    return gap_force
+
+
 def _build_distance_restraint_force(atom1: int, atom2: int, target_distance_nm: float, force_constant_kj_mol_nm2: float):
     force = openmm.CustomBondForce("0.5*k_rest*(r-r0)^2")
     force.addGlobalParameter("k_rest", force_constant_kj_mol_nm2)

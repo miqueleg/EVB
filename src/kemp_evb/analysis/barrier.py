@@ -25,12 +25,15 @@ def estimate_barrier(config: EVBConfig, pmf_points: list[PMFPoint]) -> BarrierEs
 
     reactant_region = config.analysis.barrier.reactant_region
     product_region = config.analysis.barrier.product_region
-    reactant_candidates = _region_points(finite_points, reactant_region) if reactant_region else [point for point in finite_points if point.gap_kj_mol <= 0.0]
-    product_candidates = _region_points(finite_points, product_region) if product_region else [point for point in finite_points if point.gap_kj_mol >= 0.0]
-    if not reactant_candidates:
-        reactant_candidates = finite_points
-    if not product_candidates:
-        product_candidates = finite_points
+    reactant_candidates = _region_points(finite_points, reactant_region) if reactant_region else []
+    product_candidates = _region_points(finite_points, product_region) if product_region else []
+    if (not reactant_region or not product_region) and config.analysis.barrier.allow_sign_fallback:
+        if not reactant_candidates:
+            reactant_candidates = [point for point in finite_points if point.gap_kj_mol <= 0.0]
+        if not product_candidates:
+            product_candidates = [point for point in finite_points if point.gap_kj_mol >= 0.0]
+    if not reactant_candidates or not product_candidates:
+        return BarrierEstimate(None, None, None, None, None, None, None, None)
 
     reactant = min(reactant_candidates, key=lambda point: point.free_energy_kj_mol)
     product = min(product_candidates, key=lambda point: point.free_energy_kj_mol)

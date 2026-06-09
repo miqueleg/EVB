@@ -1,0 +1,14 @@
+name: openmm-evb-plumed
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - numpy
+  - pyyaml
+  - pandas
+  - matplotlib
+  - pymbar
+  - pytest
+  - openmm
+  - openmm-plumed
+  - plumed

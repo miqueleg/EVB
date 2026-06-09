@@ -1,0 +1,47 @@
+# Python/build artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+
+# Local environments
+.venv/
+venv/
+env/
+
+# Generated simulation and analysis outputs
+outputs/
+runs/*/logs/
+*.dcd
+*.nc
+*.xtc
+*.trr
+*.traj
+*.chk
+*.rst
+*.rst7
+*.mdcrd
+*.out
+*.log
+nohup.out
+
+# PLUMED/OpenMM enhanced-sampling runtime files
+KERNELS
+bck.*.KERNELS
+STATE
+bck.*.STATE
+COLVAR
+HILLS
+
+# AmberTools/LEaP runtime logs
+leap.log
+
+# Local scratch/preparation outputs
+prep/**/work/
+prep/**/scratch/
+prep/**/evb_ready/

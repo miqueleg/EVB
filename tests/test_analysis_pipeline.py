@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import json
 from pathlib import Path
 
 from kemp_evb.analysis import build_analysis_report, build_gap_histograms, build_gap_pmf, compute_window_overlap_matrix, estimate_barrier, load_window_observables
@@ -137,3 +138,82 @@ def test_mapping_analysis_builds_reweighted_pmf(tmp_path: Path):
     finite = [point for point in pmf if point.free_energy_kj_mol is not None]
     assert finite
     assert abs(sum(point.probability for point in pmf) - 1.0) < 1.0e-8
+
+
+def test_analysis_derives_barrier_regions_from_irc_report(tmp_path: Path):
+    _write_window_csv(tmp_path, "u000", None, [-102.0, -100.0, -98.0], gap_center_kj_mol=-100.0)
+    _write_window_csv(tmp_path, "u001", None, [98.0, 100.0, 102.0], gap_center_kj_mol=100.0)
+    analysis_dir = tmp_path / "analysis"
+    analysis_dir.mkdir()
+    (analysis_dir / "evb_reference_fit_from_irc.json").write_text(
+        json.dumps(
+            {
+                "role_energies": {
+                    "RC": {"gap_shifted_kj_mol": -100.0},
+                    "PROD": {"gap_shifted_kj_mol": 100.0},
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    config = EVBConfig(
+        state1=StateFiles(prmtop="a", inpcrd="b"),
+        state2=StateFiles(prmtop="c", inpcrd="d"),
+        output_dir=str(tmp_path),
+        sampling=SamplingSettings(
+            mode="gap_umbrella",
+            windows=SamplingWindows(gap_umbrella=GapUmbrellaWindows(centers_kj_mol=[-100.0, 100.0], force_constant_kj_mol2=0.01)),
+        ),
+        analysis=AnalysisSettings(
+            histogram=HistogramSettings(bin_min_kj_mol=-150.0, bin_max_kj_mol=150.0, n_bins=30),
+            pmf=PMFSettings(temperature_k=300.0, zero_mode="reactant_min"),
+            barrier=BarrierSettings(),
+        ),
+    )
+
+    report = build_analysis_report(config)
+
+    assert report["barrier_region_source"] == "derived_from_irc_fit_report"
+    assert config.analysis.barrier.reactant_region is not None
+    assert config.analysis.barrier.product_region is not None
+
+
+def test_analysis_without_regions_does_not_use_sign_fallback(tmp_path: Path):
+    _write_window_csv(tmp_path, "u000", None, [-20.0, -10.0, 10.0, 20.0], gap_center_kj_mol=0.0)
+    config = EVBConfig(
+        state1=StateFiles(prmtop="a", inpcrd="b"),
+        state2=StateFiles(prmtop="c", inpcrd="d"),
+        output_dir=str(tmp_path),
+        sampling=SamplingSettings(
+            mode="gap_umbrella",
+            windows=SamplingWindows(gap_umbrella=GapUmbrellaWindows(centers_kj_mol=[0.0], force_constant_kj_mol2=0.01)),
+        ),
+        analysis=AnalysisSettings(
+            histogram=HistogramSettings(bin_min_kj_mol=-30.0, bin_max_kj_mol=30.0, n_bins=12),
+            barrier=BarrierSettings(),
+        ),
+    )
+
+    report = build_analysis_report(config)
+
+    assert report["barrier_estimate"]["barrier_forward_kj_mol"] is None
+    assert report["barrier_region_source"] == "undefined"
+
+
+def test_pooled_diagnostic_mode_does_not_report_production_barrier(tmp_path: Path):
+    _write_window_csv(tmp_path, "p000", None, [-0.2, 0.0, 0.2], gap_center_kj_mol=None)
+    config = EVBConfig(
+        state1=StateFiles(prmtop="a", inpcrd="b"),
+        state2=StateFiles(prmtop="c", inpcrd="d"),
+        output_dir=str(tmp_path),
+        sampling=SamplingSettings(mode="proton_transfer_umbrella"),
+        analysis=AnalysisSettings(
+            histogram=HistogramSettings(bin_min_kj_mol=-1.0, bin_max_kj_mol=1.0, n_bins=10),
+            barrier=BarrierSettings(reactant_region=(-1.0, -0.1), product_region=(0.1, 1.0)),
+        ),
+    )
+
+    report = build_analysis_report(config)
+
+    assert report["pmf_method"] == "diagnostic_pooled_histogram"
+    assert report["barrier_estimate"]["barrier_forward_kj_mol"] is None

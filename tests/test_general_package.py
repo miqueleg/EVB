@@ -7,7 +7,13 @@ import pytest
 
 from evb.evb_core import diabatic_gap
 from kemp_evb.config import load_config, validate_config
-from kemp_evb.plumed import PlumedSettings, PlumedUnavailableError, attach_plumed_force, load_plumed_script
+from kemp_evb.plumed import (
+    PLUMED_TEMPLATES,
+    PlumedSettings,
+    PlumedUnavailableError,
+    attach_plumed_force,
+    load_plumed_script,
+)
 
 
 def test_evb_package_alias_imports():
@@ -60,6 +66,14 @@ def test_plumed_script_loader_adds_restart_and_colvar():
     script = load_plumed_script(PlumedSettings(enabled=True, script="d1: DISTANCE ATOMS=1,2", restart=True))
     assert script.startswith("RESTART")
     assert "FILE=COLVAR" in script
+
+
+def test_plumed_templates_label_bias_actions():
+    assert "metad: METAD" in PLUMED_TEMPLATES["metad"]
+    assert "metad.bias" in PLUMED_TEMPLATES["metad"]
+    assert "opes: OPES_METAD" in PLUMED_TEMPLATES["opes_metad"]
+    assert "opes.bias" in PLUMED_TEMPLATES["opes_metad"]
+    assert "KERNELS=" not in PLUMED_TEMPLATES["opes_metad"]
 
 
 def test_plumed_optional_import_behavior():

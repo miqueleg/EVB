@@ -17,12 +17,21 @@ def _read_cryst1_lengths(path: Path) -> tuple[float, float, float]:
 
 
 def test_sync_shared_box_on_real_like_inputs(tmp_path: Path):
+    inputs = [
+        Path("outputs/prepared_systems/kemp_solvent_synced/RC.prmtop"),
+        Path("outputs/prepared_systems/kemp_solvent_synced/RC.pdb"),
+        Path("outputs/prepared_systems/kemp_solvent_synced/PROD.prmtop"),
+        Path("outputs/prepared_systems/kemp_solvent_synced/PROD.pdb"),
+    ]
+    if not all(path.exists() for path in inputs):
+        pytest.skip("optional generated AMBER sync-box fixture is not present")
+
     outdir = tmp_path / "boxed"
     result = sync_shared_box(
-        state1_prmtop="outputs/prepared_systems/kemp_solvent_synced/RC.prmtop",
-        state1_pdb="outputs/prepared_systems/kemp_solvent_synced/RC.pdb",
-        state2_prmtop="outputs/prepared_systems/kemp_solvent_synced/PROD.prmtop",
-        state2_pdb="outputs/prepared_systems/kemp_solvent_synced/PROD.pdb",
+        state1_prmtop=str(inputs[0]),
+        state1_pdb=str(inputs[1]),
+        state2_prmtop=str(inputs[2]),
+        state2_pdb=str(inputs[3]),
         output_dir=outdir,
         source="state1",
     )

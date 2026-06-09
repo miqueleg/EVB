@@ -1,0 +1,25 @@
+{
+  "kind": "HG3.17 EVB-ready gap umbrella PMF pilot",
+  "n_replicates": 2,
+  "n_windows": 81,
+  "timestep_fs": 0.5,
+  "production_steps_per_window": 100000,
+  "production_ps_per_window": 50.0,
+  "force_constant_kj_mol2": 1e-05,
+  "gap_range_kj_mol": [
+    -30904.979163254528,
+    2850.174300612791
+  ],
+  "fit_parameters_kj_mol": {
+    "delta_alpha_kj_mol": 307.1983003827954,
+    "h12_kj_mol": 568.4342017631922,
+    "fitted_barrier_kj_mol": 77.64750710612861,
+    "fitted_reaction_free_energy_kj_mol": 29.78566126030637,
+    "ts_weight2": 0.08521918288741476,
+    "objective_value": 0.34635392174070234
+  },
+  "configs": [
+    "runs/hg317_evb_ready_gap_pmf_pilot/configs/rep01.yaml",
+    "runs/hg317_evb_ready_gap_pmf_pilot/configs/rep02.yaml"
+  ]
+}

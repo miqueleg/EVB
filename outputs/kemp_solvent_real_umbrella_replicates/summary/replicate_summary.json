@@ -1,7 +1,0 @@
-{
-  "n_replicates": 3,
-  "barrier_mean_kj_mol": 6.475841091288642,
-  "barrier_std_kj_mol": 1.6502518768779277,
-  "reaction_free_energy_mean_kj_mol": 6.051391346520961,
-  "reaction_free_energy_std_kj_mol": 2.247135087027438
-}

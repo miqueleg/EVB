@@ -1,9 +1,0 @@
-{
-  "window_id": "u010",
-  "gap_center_kj_mol": -20500.0,
-  "force_constant_kj_mol2": 1e-07,
-  "n_frames": 100,
-  "final_step": 2200,
-  "final_time_ps": 0.22,
-  "output_dir": "outputs/kemp_solvent_real_umbrella_production_cuda/windows/u010"
-}
