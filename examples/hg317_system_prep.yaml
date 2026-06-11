@@ -1,0 +1,24 @@
+# Conservative HG3.17/5RGE preparation scaffold.
+# This does not claim final EVB-ready reproducibility until matched state topologies are validated.
+source_pdb: inputs/5RGE.pdb
+irc_xyz: examples/HD3.17_IRC.xyz
+output_dir: prep/hg317_system_prep
+ligand_residue_name: 6NT
+reactant_frame: 106
+product_frame: 0
+active_site_water_cutoff_angstrom: 6.0
+active_site_waters:
+  retain_residues: []  # optional explicit [chain, residue_number] entries
+protonation:
+  # Explicit choices should be reviewed and extended for production preparation.
+  HIS127: HID/HIE/HIP review required
+  ASP127: catalytic state review required
+state1_ligand_charge: 0
+state2_ligand_charge: 0
+user_supplied_ligands:
+  state1_mol2: null
+  state2_mol2: null
+  state1_sdf: null
+  state2_sdf: null
+reactive_component_atoms: [6, 7, 62, 63, 64, 65, 66, 67, 68, 81, 82, 83, 194, 195, 196, 197]
+product_ligand_atoms: [6, 7, 62, 63, 64, 65, 66, 67, 68, 81, 82, 83, 194, 195, 196]

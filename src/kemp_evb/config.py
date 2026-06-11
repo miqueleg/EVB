@@ -128,6 +128,14 @@ class EVBParameterConfig:
 
 
 @dataclass(slots=True)
+class EnergyDecompositionSettings:
+    enabled: bool = False
+    mode: str = "exact"
+    fallback_to_legacy_for_unsupported_terms: bool = True
+    report: bool = True
+
+
+@dataclass(slots=True)
 class CouplingModelConfig:
     model: str = "constant"
     delta_alpha_kj_mol: float | None = None
@@ -394,6 +402,7 @@ class EVBConfig:
     state2: StateFiles
     calibration: CalibrationData | None = None
     evb_parameters: EVBParameterConfig = field(default_factory=EVBParameterConfig)
+    energy_decomposition: EnergyDecompositionSettings = field(default_factory=EnergyDecompositionSettings)
     cv: CVDefinition | None = None
     simulation: SimulationSettings = field(default_factory=SimulationSettings)
     output_dir: str = "outputs"
@@ -561,6 +570,7 @@ def _from_legacy_mapping(data: dict[str, Any]) -> EVBConfig:
         state2=state2,
         calibration=calibration,
         evb_parameters=evb_parameters,
+        energy_decomposition=EnergyDecompositionSettings(),
         cv=cv,
         simulation=simulation,
         output_dir=project.output_dir,
@@ -603,6 +613,7 @@ def _from_modern_mapping(data: dict[str, Any]) -> EVBConfig:
     delta_alpha = parameter_block.get("delta_alpha_kj_mol", coupling_payload.get("delta_alpha_kj_mol"))
     h12 = parameter_block.get("h12_kj_mol", coupling_payload.get("h12_kj_mol"))
     evb_parameters = EVBParameterConfig(delta_alpha=delta_alpha, h12=h12)
+    energy_decomposition = EnergyDecompositionSettings(**evb_payload.get("energy_decomposition", {}))
 
     sampling_payload = data.get("sampling", {})
     integrator_payload = sampling_payload.get("integrator", {})
@@ -684,6 +695,7 @@ def _from_modern_mapping(data: dict[str, Any]) -> EVBConfig:
         state2=state2,
         calibration=None,
         evb_parameters=evb_parameters,
+        energy_decomposition=energy_decomposition,
         cv=cv,
         simulation=simulation,
         output_dir=project.output_dir,
@@ -728,6 +740,10 @@ def validate_config(config: EVBConfig) -> list[str]:
         errors.append("evb.coupling_model.parameters.delta_alpha_kj_mol is required.")
     if config.evb_parameters.h12 is None:
         errors.append("evb.coupling_model.parameters.h12_kj_mol is required.")
+    if config.energy_decomposition.enabled and config.energy_decomposition.mode != "exact":
+        errors.append("evb.energy_decomposition.mode must be 'exact'.")
+    if config.energy_decomposition.enabled and not config.energy_decomposition.fallback_to_legacy_for_unsupported_terms:
+        errors.append("Exact energy decomposition currently requires fallback_to_legacy_for_unsupported_terms: true.")
     if config.sampling.mode not in {"mapping", "gap_umbrella", "proton_transfer_umbrella", "gap_metadynamics"}:
         errors.append(f"Unsupported sampling.mode {config.sampling.mode!r}.")
     if config.sampling.mode == "mapping" and not config.sampling.windows.mapping.lambda_values:

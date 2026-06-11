@@ -151,3 +151,52 @@ def test_native_openmm_evb_toy_system_runs_on_cuda_when_available():
     result = simulation.single_point()
     analytical_energy, _, _ = EVBHamiltonian(parameters).lower_eigenvalue(result.energy1, result.energy2)
     assert np.isclose(result.evb_energy, analytical_energy)
+
+
+
+def test_exact_decomposed_evb_matches_legacy_energy_gap_forces_and_minimization():
+    state1 = _make_state(r0_nm=0.12, distance_nm=0.18)
+    state2 = _make_state(r0_nm=0.14, distance_nm=0.18)
+    parameters = EVBParameters(delta_alpha=2.0, h12=5.0)
+    builder = EVBSystemBuilder()
+    legacy = builder.build_openmm_evb_system(state1, state2, parameters.delta_alpha, parameters.h12)
+    decomposed = builder.build_openmm_evb_system_decomposed(state1, state2, parameters.delta_alpha, parameters.h12)
+
+    legacy_sim = EVBSimulation(legacy, create_integrator(1.0, integrator_name="Verlet"), platform_name="CPU")
+    decomposed_sim = EVBSimulation(decomposed, create_integrator(1.0, integrator_name="Verlet"), platform_name="CPU")
+    positions = state1.positions_nm.copy()
+    legacy_result = legacy_sim.single_point(positions)
+    decomposed_result = decomposed_sim.single_point(positions)
+
+    legacy_gap = legacy_result.energy1 - legacy_result.energy2 - parameters.delta_alpha
+    decomposed_gap = decomposed_result.energy1 - decomposed_result.energy2 - parameters.delta_alpha
+    assert abs(decomposed_result.evb_energy - legacy_result.evb_energy) <= 1.0e-6
+    assert abs(decomposed_gap - legacy_gap) <= 1.0e-6
+    force_delta = decomposed_result.forces - legacy_result.forces
+    assert np.sqrt(np.mean(force_delta**2)) <= 1.0e-6
+    assert np.max(np.abs(force_delta)) <= 1.0e-6
+
+    legacy_history = legacy_sim.minimize(max_iterations=50)
+    decomposed_history = decomposed_sim.minimize(max_iterations=50)
+    assert abs(decomposed_history[-1].evb_energy - legacy_history[-1].evb_energy) <= 1.0e-6
+    assert decomposed.energy_decomposition_report["enabled"] is True
+    assert decomposed.energy_decomposition_report["n_state1_terms"] == 1
+    assert decomposed.energy_decomposition_report["n_state2_terms"] == 1
+
+
+def test_exact_decomposition_reports_identical_common_force():
+    state1 = _make_state(r0_nm=0.12, distance_nm=0.18)
+    state2 = _make_state(r0_nm=0.12, distance_nm=0.18)
+    parameters = EVBParameters(delta_alpha=2.0, h12=5.0)
+    decomposed = EVBSystemBuilder().build_openmm_evb_system_decomposed(
+        state1,
+        state2,
+        parameters.delta_alpha,
+        parameters.h12,
+    )
+    report = decomposed.energy_decomposition_report
+    assert report["n_common_forces"] == 1
+    assert report["n_common_terms"] == 1
+    assert report["n_state1_terms"] == 0
+    assert report["n_state2_terms"] == 0
+    assert report["warnings"] == []

@@ -172,8 +172,12 @@ class EVBSimulation:
         )
 
     def _state_energies(self) -> tuple[float, float]:
-        values = self.evb_system.evb_force.getCollectiveVariableValues(self.context)
-        return float(values[0]), float(values[1])
+        values = [float(value) for value in self.evb_system.evb_force.getCollectiveVariableValues(self.context)]
+        report = self.evb_system.energy_decomposition_report or {}
+        if report.get("enabled") and len(values) >= 3:
+            e_common, e1, e2 = values[:3]
+            return e_common + e1, e_common + e2
+        return values[0], values[1]
 
     def _time_ps(self) -> float:
         if hasattr(self.integrator, "getStepSize"):

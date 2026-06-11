@@ -1,0 +1,153 @@
+{
+  "config_path": "examples/toy_evb.yaml",
+  "mode": "decomposed",
+  "platform_requested": "CPU",
+  "cuda_available": true,
+  "cuda_actually_used": false,
+  "steps": 1000,
+  "repeats": 3,
+  "skip_md": false,
+  "git_commit_sha": "e24af61054438371d7a76f8eaf15f3fe0813dd8c",
+  "timestamp": "2026-06-11T11:44:49.164291+00:00",
+  "python_version": "3.12.3 (main, Mar 23 2026, 19:04:32) [GCC 13.3.0]",
+  "openmm_version": "8.5.2.dev-36a30cb",
+  "results": [
+    {
+      "repeat": 0,
+      "status": "ok",
+      "build_time_seconds": 0.002619710983708501,
+      "context_creation_time_seconds": 0.0020978651009500027,
+      "minimization_time_seconds": 0.004345392109826207,
+      "md_wall_time_seconds": 0.609323495067656,
+      "steps_per_second": 1641.1643537378536,
+      "ns_per_day": 141.79660016295057,
+      "mean_evb_energy_kj_mol": -3.3546966236917206,
+      "mean_shifted_gap_kj_mol": -1.502079542137611,
+      "mean_absolute_force_norm_kj_mol_nm": 33.52786230510014,
+      "number_of_atoms": 2,
+      "number_of_forces": 1,
+      "number_of_common_forces": 0,
+      "number_of_state_specific_forces": 2,
+      "number_of_common_terms": 0,
+      "number_of_state_specific_terms": 2,
+      "warnings": [],
+      "decomposition_report": {
+        "enabled": true,
+        "mode": "exact",
+        "n_common_forces": 0,
+        "n_state1_forces": 1,
+        "n_state2_forces": 1,
+        "n_common_terms": 0,
+        "n_state1_terms": 1,
+        "n_state2_terms": 1,
+        "unsupported_forces": [],
+        "warnings": []
+      }
+    },
+    {
+      "repeat": 1,
+      "status": "ok",
+      "build_time_seconds": 0.00062766601331532,
+      "context_creation_time_seconds": 0.0022629769518971443,
+      "minimization_time_seconds": 0.002966376021504402,
+      "md_wall_time_seconds": 0.3547718229237944,
+      "steps_per_second": 2818.7131428833954,
+      "ns_per_day": 243.53681554512536,
+      "mean_evb_energy_kj_mol": -2.959885600838007,
+      "mean_shifted_gap_kj_mol": -1.7175524142050171,
+      "mean_absolute_force_norm_kj_mol_nm": 40.96316435211891,
+      "number_of_atoms": 2,
+      "number_of_forces": 1,
+      "number_of_common_forces": 0,
+      "number_of_state_specific_forces": 2,
+      "number_of_common_terms": 0,
+      "number_of_state_specific_terms": 2,
+      "warnings": [],
+      "decomposition_report": {
+        "enabled": true,
+        "mode": "exact",
+        "n_common_forces": 0,
+        "n_state1_forces": 1,
+        "n_state2_forces": 1,
+        "n_common_terms": 0,
+        "n_state1_terms": 1,
+        "n_state2_terms": 1,
+        "unsupported_forces": [],
+        "warnings": []
+      }
+    },
+    {
+      "repeat": 2,
+      "status": "ok",
+      "build_time_seconds": 0.00048041786067187786,
+      "context_creation_time_seconds": 0.002187674166634679,
+      "minimization_time_seconds": 0.005396538879722357,
+      "md_wall_time_seconds": 0.48027569497935474,
+      "steps_per_second": 2082.137427426941,
+      "ns_per_day": 179.8966737296877,
+      "mean_evb_energy_kj_mol": -3.3940269561817447,
+      "mean_shifted_gap_kj_mol": -1.4830409078606777,
+      "mean_absolute_force_norm_kj_mol_nm": 30.971652452871105,
+      "number_of_atoms": 2,
+      "number_of_forces": 1,
+      "number_of_common_forces": 0,
+      "number_of_state_specific_forces": 2,
+      "number_of_common_terms": 0,
+      "number_of_state_specific_terms": 2,
+      "warnings": [],
+      "decomposition_report": {
+        "enabled": true,
+        "mode": "exact",
+        "n_common_forces": 0,
+        "n_state1_forces": 1,
+        "n_state2_forces": 1,
+        "n_common_terms": 0,
+        "n_state1_terms": 1,
+        "n_state2_terms": 1,
+        "unsupported_forces": [],
+        "warnings": []
+      }
+    }
+  ],
+  "summary": {
+    "context_creation_time_seconds": {
+      "mean": 0.0021828387398272753,
+      "std": 6.749329272900678e-05
+    },
+    "minimization_time_seconds": {
+      "mean": 0.004236102337017655,
+      "std": 0.0009951150922367133
+    },
+    "md_wall_time_seconds": {
+      "mean": 0.4814570043236017,
+      "std": 0.10392364205394301
+    },
+    "steps_per_second": {
+      "mean": 2180.671641349397,
+      "std": 485.755103723073
+    },
+    "ns_per_day": {
+      "mean": 188.41002981258785,
+      "std": 41.9692409616735
+    },
+    "mean_evb_energy_kj_mol": {
+      "mean": -3.2362030602371576,
+      "std": 0.19604459108417974
+    },
+    "mean_shifted_gap_kj_mol": {
+      "mean": -1.567557621401102,
+      "std": 0.10634674669839787
+    },
+    "mean_absolute_force_norm_kj_mol_nm": {
+      "mean": 35.15422637003005,
+      "std": 4.238031977382436
+    },
+    "number_of_atoms": 2,
+    "number_of_forces": 1,
+    "number_of_common_forces": 0,
+    "number_of_state_specific_forces": 2,
+    "number_of_common_terms": 0,
+    "number_of_state_specific_terms": 2,
+    "warnings": []
+  }
+}

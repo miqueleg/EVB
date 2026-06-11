@@ -18,6 +18,7 @@ from .fitting import fit_bootstrap_parameters, fit_ensemble_parameters
 from .io import write_json
 from .irc import read_irc_xyz, write_irc_outputs
 from .irc_setup import setup_from_irc
+from .hg317_prep import prepare_hg317_system
 from .observables import compute_named_distances, compute_named_reaction_coordinates, make_gap_sample
 from .openmm_backend import (
     AmberSystemLoader,
@@ -67,6 +68,7 @@ def main() -> None:
             "irc-analyze",
             "setup-from-irc",
             "prepare-evb-inputs",
+            "prepare-hg317-system",
             "plumed-md",
             "evb-metad",
             "evb-opes",
@@ -88,6 +90,7 @@ def main() -> None:
     parser.add_argument("--g-product", type=float, help="Reference product free energy")
     parser.add_argument("--write-window-config", action="store_true", help="Write IRC-derived gap umbrella window proposal")
     parser.add_argument("--dry-run", action="store_true", help="Parse config and report planned setup without running MD")
+    parser.add_argument("--execute", action="store_true", help="Execute external preparation tools when supported by the command")
     parser.add_argument("--no-sampling", action="store_true", help="Do not start sampling after setup-from-irc")
     parser.add_argument("--output", help="Output directory for commands that do not require --config")
     parser.add_argument("--reactive-atom", action="append", type=int, default=[], help="Extra 0-based OpenMM reactive atom index for prepare-evb-inputs")
@@ -108,6 +111,9 @@ def main() -> None:
         return
     if not args.config:
         raise ValueError("--config is required for this command.")
+    if args.command == "prepare-hg317-system":
+        print(json.dumps(prepare_hg317_system(args.config, execute=args.execute), indent=2))
+        return
     config = load_config(args.config)
     if args.command == "validate":
         run_validate(config)
@@ -266,6 +272,7 @@ def run_singlepoint(config: EVBConfig) -> None:
                 "weight1": result.weight1,
                 "weight2": result.weight2,
                 "cv": simulation.compute_cv(),
+                "energy_decomposition": simulation.evb_system.energy_decomposition_report,
             },
             handle,
             indent=2,
@@ -330,6 +337,7 @@ def run_plumed_md(config: EVBConfig, base_dir: str | Path = ".", expected_mode: 
         state2,
         delta_alpha=parameters.delta_alpha,
         h12=parameters.h12,
+        energy_decomposition=config.energy_decomposition.enabled,
     )
     output_dir = ensure_output_dir(config.output_dir)
     write_json(
@@ -468,6 +476,7 @@ def run_gap_metadynamics(config: EVBConfig) -> None:
         state2,
         delta_alpha=parameters.delta_alpha,
         h12=parameters.h12,
+        energy_decomposition=config.energy_decomposition.enabled,
     )
     if meta.wall_force_constant_kj_mol2 is not None:
         wall_cv = build_evb_gap_cv_force(state1.system, state2.system, parameters.delta_alpha, prefix="gap_wall")
@@ -881,6 +890,7 @@ def build_simulation(config: EVBConfig, mode: str) -> EVBSimulation:
         state2,
         delta_alpha=parameters.delta_alpha,
         h12=parameters.h12,
+        energy_decomposition=config.energy_decomposition.enabled,
     )
     integrator_name = config.simulation.integrator if mode == "md" else "Verlet"
     integrator = create_integrator(

@@ -85,6 +85,7 @@ class EVBOpenMMSystem:
     equilibration_restraint_force: Any | None = None
     production_restraint_force: Any | None = None
     far_field_restraint_force: Any | None = None
+    energy_decomposition_report: dict[str, Any] | None = None
 
 
 @dataclass(slots=True)
@@ -235,7 +236,20 @@ class EVBSystemBuilder:
         far_field_restraint: tuple[list[int], np.ndarray, float] | None = None,
         unconstrained_atoms: set[int] | None = None,
         add_cmmotion_remover: bool = True,
+        energy_decomposition: bool = False,
     ) -> EVBOpenMMSystem:
+        if energy_decomposition:
+            return self.build_openmm_evb_system_decomposed(
+                state1,
+                state2,
+                delta_alpha,
+                h12,
+                equilibration_restraint=equilibration_restraint,
+                substrate_com_restraint=substrate_com_restraint,
+                far_field_restraint=far_field_restraint,
+                unconstrained_atoms=unconstrained_atoms,
+                add_cmmotion_remover=add_cmmotion_remover,
+            )
         self.validate_compatibility(state1, state2)
         system = openmm.System()
         for index in range(state1.system.getNumParticles()):
@@ -289,6 +303,78 @@ class EVBSystemBuilder:
             equilibration_restraint_force=restraint_force,
             production_restraint_force=production_restraint_force,
             far_field_restraint_force=far_field_restraint_force,
+            energy_decomposition_report=_legacy_decomposition_report(),
+        )
+
+    def build_openmm_evb_system_decomposed(
+        self,
+        state1: LoadedAmberState,
+        state2: LoadedAmberState,
+        delta_alpha: float,
+        h12: float,
+        equilibration_restraint: tuple[int, int, float, float] | None = None,
+        substrate_com_restraint: tuple[list[int], float] | None = None,
+        far_field_restraint: tuple[list[int], np.ndarray, float] | None = None,
+        unconstrained_atoms: set[int] | None = None,
+        add_cmmotion_remover: bool = True,
+    ) -> EVBOpenMMSystem:
+        self.validate_compatibility(state1, state2)
+        system = openmm.System()
+        for index in range(state1.system.getNumParticles()):
+            system.addParticle(state1.system.getParticleMass(index))
+        _copy_constraints(state1.system, system, skip_atoms=unconstrained_atoms)
+        _copy_virtual_sites(state1.system, system)
+        if state1.box_vectors_nm is not None:
+            system.setDefaultPeriodicBoxVectors(*_to_box_vectors(state1.box_vectors_nm))
+
+        decomposition = _decompose_system_forces(state1.system, state2.system)
+        common_force = _aggregate_energy_forces(decomposition["common_forces"], "common")
+        state1_force = _aggregate_energy_forces(decomposition["state1_forces"], "s1")
+        state2_force = _aggregate_energy_forces(decomposition["state2_forces"], "s2")
+        evb_force = openmm.CustomCVForce(
+            "e_common + 0.5*(e1 + e2 + delta_alpha) - sqrt(0.25*(e1 - e2 - delta_alpha)^2 + h12^2)"
+        )
+        evb_force.addCollectiveVariable("e_common", common_force)
+        evb_force.addCollectiveVariable("e1", state1_force)
+        evb_force.addCollectiveVariable("e2", state2_force)
+        evb_force.addGlobalParameter("delta_alpha", delta_alpha)
+        evb_force.addGlobalParameter("h12", h12)
+        system.addForce(evb_force)
+        restraint_force = None
+        if equilibration_restraint is not None:
+            restraint_force = _build_distance_restraint_force(*equilibration_restraint)
+            system.addForce(restraint_force)
+        production_restraint_force = None
+        if substrate_com_restraint is not None:
+            production_restraint_force = _build_centroid_restraint_force(
+                substrate_com_restraint[0],
+                state1.positions_nm,
+                state1.masses_amu,
+                substrate_com_restraint[1],
+            )
+            system.addForce(production_restraint_force)
+        far_field_restraint_force = None
+        if far_field_restraint is not None:
+            far_field_restraint_force = _build_positional_restraint_force(*far_field_restraint)
+            system.addForce(far_field_restraint_force)
+
+        if add_cmmotion_remover and _has_cmmotion_remover(state1.system):
+            system.addForce(openmm.CMMotionRemover())
+
+        return EVBOpenMMSystem(
+            system=system,
+            topology=state1.topology,
+            positions_nm=state1.positions_nm.copy(),
+            box_vectors_nm=state1.box_vectors_nm,
+            masses_amu=state1.masses_amu.copy(),
+            evb_force=evb_force,
+            state1_force=state1_force,
+            state2_force=state2_force,
+            umbrella_force=None,
+            equilibration_restraint_force=restraint_force,
+            production_restraint_force=production_restraint_force,
+            far_field_restraint_force=far_field_restraint_force,
+            energy_decomposition_report=decomposition["report"],
         )
 
     def build_openmm_gap_umbrella_system(
@@ -650,6 +736,225 @@ def create_dcd_writer(path: str, topology: Any, timestep_ps: float) -> Any:
     handle = open(path, "wb")
     return handle, DCDFile(handle, topology, dt=timestep_ps * unit.picoseconds)
 
+
+
+def _legacy_decomposition_report() -> dict[str, Any]:
+    return {
+        "enabled": False,
+        "mode": "legacy",
+        "n_common_forces": 0,
+        "n_state1_forces": 0,
+        "n_state2_forces": 0,
+        "n_common_terms": 0,
+        "n_state1_terms": 0,
+        "n_state2_terms": 0,
+        "unsupported_forces": [],
+        "warnings": [],
+    }
+
+
+def _decompose_system_forces(system1: Any, system2: Any) -> dict[str, Any]:
+    common_forces: list[Any] = []
+    state1_forces: list[Any] = []
+    state2_forces: list[Any] = []
+    unsupported: list[str] = []
+    warnings: list[str] = []
+    counts = {"n_common_terms": 0, "n_state1_terms": 0, "n_state2_terms": 0}
+    max_forces = max(system1.getNumForces(), system2.getNumForces())
+    for force_index in range(max_forces):
+        if force_index >= system1.getNumForces():
+            force2 = system2.getForce(force_index)
+            if not _should_skip_subforce(force2):
+                state2_forces.append(_clone_openmm_object(force2))
+                counts["n_state2_terms"] += _force_term_count(force2)
+            continue
+        if force_index >= system2.getNumForces():
+            force1 = system1.getForce(force_index)
+            if not _should_skip_subforce(force1):
+                state1_forces.append(_clone_openmm_object(force1))
+                counts["n_state1_terms"] += _force_term_count(force1)
+            continue
+        force1 = system1.getForce(force_index)
+        force2 = system2.getForce(force_index)
+        if _should_skip_subforce(force1) and _should_skip_subforce(force2):
+            continue
+        if _force_xml(force1) == _force_xml(force2):
+            common_forces.append(_clone_openmm_object(force1))
+            counts["n_common_terms"] += _force_term_count(force1)
+            continue
+        decomposed = _decompose_supported_force(force1, force2)
+        if decomposed is None:
+            name = type(force1).__name__ if type(force1) is type(force2) else f"{type(force1).__name__}/{type(force2).__name__}"
+            unsupported.append(name)
+            if isinstance(force1, openmm.NonbondedForce) or isinstance(force2, openmm.NonbondedForce):
+                warnings.append("NonbondedForce differs between states and was kept in full state-specific EVB evaluation; exact local decomposition for PME is not implemented.")
+            else:
+                warnings.append(f"{name} differs between states and was kept in full state-specific EVB evaluation.")
+            state1_forces.append(_clone_openmm_object(force1))
+            state2_forces.append(_clone_openmm_object(force2))
+            counts["n_state1_terms"] += _force_term_count(force1)
+            counts["n_state2_terms"] += _force_term_count(force2)
+            continue
+        for key, dest in (("common", common_forces), ("state1", state1_forces), ("state2", state2_forces)):
+            if decomposed[key] is not None:
+                dest.append(decomposed[key])
+        counts["n_common_terms"] += decomposed["n_common_terms"]
+        counts["n_state1_terms"] += decomposed["n_state1_terms"]
+        counts["n_state2_terms"] += decomposed["n_state2_terms"]
+    report = {
+        "enabled": True,
+        "mode": "exact",
+        "n_common_forces": len(common_forces),
+        "n_state1_forces": len(state1_forces),
+        "n_state2_forces": len(state2_forces),
+        "n_common_terms": counts["n_common_terms"],
+        "n_state1_terms": counts["n_state1_terms"],
+        "n_state2_terms": counts["n_state2_terms"],
+        "unsupported_forces": unsupported,
+        "warnings": sorted(set(warnings)),
+    }
+    return {"common_forces": common_forces, "state1_forces": state1_forces, "state2_forces": state2_forces, "report": report}
+
+
+def _force_xml(force: Any) -> str:
+    return openmm.XmlSerializer.serialize(force)
+
+
+def _aggregate_energy_forces(forces: list[Any], prefix: str):
+    prepared = []
+    for index, force in enumerate(forces):
+        cloned = _clone_openmm_object(force)
+        _rename_force_global_parameters(cloned, f"{prefix}_{index}")
+        prepared.append(cloned)
+    if not prepared:
+        return openmm.CustomCVForce("0")
+    if len(prepared) == 1:
+        return prepared[0]
+    variable_names = [f"{prefix}_{index}" for index in range(len(prepared))]
+    aggregate = openmm.CustomCVForce(" + ".join(variable_names))
+    for variable_name, force in zip(variable_names, prepared):
+        aggregate.addCollectiveVariable(variable_name, force)
+    return aggregate
+
+
+def _force_term_count(force: Any) -> int:
+    for method in ("getNumBonds", "getNumAngles", "getNumTorsions"):
+        if hasattr(force, method):
+            return int(getattr(force, method)())
+    return 1
+
+
+def _copy_force_metadata(source: Any, target: Any) -> None:
+    target.setForceGroup(source.getForceGroup())
+    if hasattr(source, "usesPeriodicBoundaryConditions") and hasattr(target, "setUsesPeriodicBoundaryConditions"):
+        try:
+            target.setUsesPeriodicBoundaryConditions(source.usesPeriodicBoundaryConditions())
+        except Exception:
+            pass
+
+
+def _decompose_supported_force(force1: Any, force2: Any) -> dict[str, Any] | None:
+    if type(force1) is not type(force2):
+        return None
+    for cls, kind in ((openmm.HarmonicBondForce, "harmonic_bond"), (openmm.HarmonicAngleForce, "harmonic_angle"), (openmm.PeriodicTorsionForce, "periodic_torsion"), (openmm.RBTorsionForce, "rb_torsion"), (openmm.CustomBondForce, "custom_bond"), (openmm.CustomAngleForce, "custom_angle"), (openmm.CustomTorsionForce, "custom_torsion")):
+        if isinstance(force1, cls):
+            return _decompose_term_force(force1, force2, kind)
+    return None
+
+
+def _decompose_term_force(force1: Any, force2: Any, kind: str) -> dict[str, Any] | None:
+    if kind.startswith("custom") and not _custom_force_compatible(force1, force2):
+        return None
+    common = _make_empty_term_force(force1, kind)
+    state1 = _make_empty_term_force(force1, kind)
+    state2 = _make_empty_term_force(force2, kind)
+    terms1 = [_term_signature(force1, kind, i) for i in range(_force_term_count(force1))]
+    terms2 = [_term_signature(force2, kind, i) for i in range(_force_term_count(force2))]
+    n_common = n_state1 = n_state2 = 0
+    used2: set[int] = set()
+    for i, term1 in enumerate(terms1):
+        match = next((j for j, term2 in enumerate(terms2) if j not in used2 and term1 == term2), None)
+        if match is None:
+            _add_term(state1, kind, force1, i)
+            n_state1 += 1
+        else:
+            _add_term(common, kind, force1, i)
+            used2.add(match)
+            n_common += 1
+    for j in range(len(terms2)):
+        if j not in used2:
+            _add_term(state2, kind, force2, j)
+            n_state2 += 1
+    return {"common": common if _force_term_count(common) else None, "state1": state1 if _force_term_count(state1) else None, "state2": state2 if _force_term_count(state2) else None, "n_common_terms": n_common, "n_state1_terms": n_state1, "n_state2_terms": n_state2}
+
+
+def _custom_force_compatible(force1: Any, force2: Any) -> bool:
+    if force1.getEnergyFunction() != force2.getEnergyFunction() or force1.getNumGlobalParameters() != force2.getNumGlobalParameters() or force1.getNumPerBondParameters() != force2.getNumPerBondParameters():
+        return False
+    for i in range(force1.getNumGlobalParameters()):
+        if force1.getGlobalParameterName(i) != force2.getGlobalParameterName(i) or force1.getGlobalParameterDefaultValue(i) != force2.getGlobalParameterDefaultValue(i):
+            return False
+    for i in range(force1.getNumPerBondParameters()):
+        if force1.getPerBondParameterName(i) != force2.getPerBondParameterName(i):
+            return False
+    return True
+
+
+def _make_empty_term_force(source: Any, kind: str):
+    if kind == "harmonic_bond":
+        force = openmm.HarmonicBondForce()
+    elif kind == "harmonic_angle":
+        force = openmm.HarmonicAngleForce()
+    elif kind == "periodic_torsion":
+        force = openmm.PeriodicTorsionForce()
+    elif kind == "rb_torsion":
+        force = openmm.RBTorsionForce()
+    elif kind == "custom_bond":
+        force = openmm.CustomBondForce(source.getEnergyFunction())
+        _copy_custom_parameters(source, force)
+    elif kind == "custom_angle":
+        force = openmm.CustomAngleForce(source.getEnergyFunction())
+        _copy_custom_parameters(source, force)
+    elif kind == "custom_torsion":
+        force = openmm.CustomTorsionForce(source.getEnergyFunction())
+        _copy_custom_parameters(source, force)
+    else:
+        raise ValueError(f"Unsupported term force kind: {kind}")
+    _copy_force_metadata(source, force)
+    return force
+
+
+def _copy_custom_parameters(source: Any, target: Any) -> None:
+    for i in range(source.getNumGlobalParameters()):
+        target.addGlobalParameter(source.getGlobalParameterName(i), source.getGlobalParameterDefaultValue(i))
+    for i in range(source.getNumPerBondParameters()):
+        target.addPerBondParameter(source.getPerBondParameterName(i))
+
+
+def _term_signature(force: Any, kind: str, index: int) -> str:
+    holder = _make_empty_term_force(force, kind)
+    _add_term(holder, kind, force, index)
+    return _force_xml(holder)
+
+
+def _add_term(target: Any, kind: str, source: Any, index: int) -> None:
+    if kind == "harmonic_bond":
+        target.addBond(*source.getBondParameters(index))
+    elif kind == "harmonic_angle":
+        target.addAngle(*source.getAngleParameters(index))
+    elif kind in {"periodic_torsion", "rb_torsion"}:
+        target.addTorsion(*source.getTorsionParameters(index))
+    elif kind == "custom_bond":
+        p1, p2, params = source.getBondParameters(index)
+        target.addBond(p1, p2, params)
+    elif kind == "custom_angle":
+        p1, p2, p3, params = source.getAngleParameters(index)
+        target.addAngle(p1, p2, p3, params)
+    elif kind == "custom_torsion":
+        p1, p2, p3, p4, params = source.getTorsionParameters(index)
+        target.addTorsion(p1, p2, p3, p4, params)
+    else:
+        raise ValueError(f"Unsupported term force kind: {kind}")
 
 def _build_state_energy_force(source_system: Any, prefix: str):
     energy_forces = []
