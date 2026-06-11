@@ -133,6 +133,7 @@ class EnergyDecompositionSettings:
     mode: str = "exact"
     fallback_to_legacy_for_unsupported_terms: bool = True
     report: bool = True
+    common_force_placement: str = "outer_system"
 
 
 @dataclass(slots=True)
@@ -251,6 +252,26 @@ class MetadynamicsSettings:
 
 
 @dataclass(slots=True)
+class NativeGapBiasSettings:
+    method: str = "well_tempered_metadynamics"
+    cv: str = "gap"
+    min_value: float | None = None
+    max_value: float | None = None
+    grid_width: int | None = None
+    bias_width: float | None = None
+    height_kj_mol: float | None = None
+    bias_factor: float | None = None
+    temperature_k: float | None = None
+    frequency: int | None = None
+    save_frequency: int | None = None
+    bias_dir: str | None = None
+    restart: bool = True
+    wall_force_constant_kj_mol2: float | None = None
+    update_scheme: str = "table_in_context"
+    out_of_grid: str = "clamp"
+
+
+@dataclass(slots=True)
 class SamplingWindows:
     mapping: MappingWindows = field(default_factory=MappingWindows)
     gap_umbrella: GapUmbrellaWindows = field(default_factory=GapUmbrellaWindows)
@@ -276,6 +297,7 @@ class SamplingSettings:
     umbrella_ramp: UmbrellaRampSettings = field(default_factory=UmbrellaRampSettings)
     seed_relaxation: SeedRelaxationSettings = field(default_factory=SeedRelaxationSettings)
     metadynamics: MetadynamicsSettings = field(default_factory=MetadynamicsSettings)
+    native_gap_bias: NativeGapBiasSettings = field(default_factory=NativeGapBiasSettings)
     windows: SamplingWindows = field(default_factory=SamplingWindows)
     seed_windows: list[WindowSeedDefinition] = field(default_factory=list)
 
@@ -630,6 +652,7 @@ def _from_modern_mapping(data: dict[str, Any]) -> EVBConfig:
         umbrella_ramp=UmbrellaRampSettings(**sampling_payload.get("umbrella_ramp", {})),
         seed_relaxation=SeedRelaxationSettings(**sampling_payload.get("seed_relaxation", {})),
         metadynamics=MetadynamicsSettings(**sampling_payload.get("metadynamics", {})),
+        native_gap_bias=NativeGapBiasSettings(**sampling_payload.get("native_gap_bias", {})),
         windows=SamplingWindows(
             mapping=MappingWindows(**windows_payload.get("mapping", {})),
             gap_umbrella=GapUmbrellaWindows(**windows_payload.get("gap_umbrella", {})),
@@ -742,7 +765,9 @@ def validate_config(config: EVBConfig) -> list[str]:
         errors.append("evb.coupling_model.parameters.h12_kj_mol is required.")
     if config.energy_decomposition.enabled and config.energy_decomposition.mode not in {"exact", "legacy"}:
         errors.append("evb.energy_decomposition.mode must be 'exact' or 'legacy'.")
-    if config.sampling.mode not in {"mapping", "gap_umbrella", "proton_transfer_umbrella", "gap_metadynamics"}:
+    if config.energy_decomposition.common_force_placement not in {"outer_system", "cv_compatible"}:
+        errors.append("evb.energy_decomposition.common_force_placement must be 'outer_system' or 'cv_compatible'.")
+    if config.sampling.mode not in {"mapping", "gap_umbrella", "proton_transfer_umbrella", "gap_metadynamics", "gap_table_metadynamics"}:
         errors.append(f"Unsupported sampling.mode {config.sampling.mode!r}.")
     if config.sampling.mode == "mapping" and not config.sampling.windows.mapping.lambda_values:
         errors.append("mapping mode requires sampling.windows.mapping.lambda_values.")
@@ -761,7 +786,48 @@ def validate_config(config: EVBConfig) -> list[str]:
             errors.append("gap_metadynamics currently supports sampling.metadynamics.cv: gap only.")
         if meta.min_value is None or meta.max_value is None or meta.bias_width is None:
             errors.append("gap_metadynamics requires min_value, max_value, and bias_width in kJ/mol.")
+    if config.sampling.mode == "gap_table_metadynamics":
+        native = resolve_native_gap_bias_settings(config)
+        if native.method != "well_tempered_metadynamics":
+            errors.append("gap_table_metadynamics currently supports native_gap_bias.method: well_tempered_metadynamics only.")
+        if native.cv != "gap":
+            errors.append("gap_table_metadynamics currently supports native_gap_bias.cv: gap only.")
+        if native.min_value is None or native.max_value is None or native.bias_width is None:
+            errors.append("gap_table_metadynamics requires min_value, max_value, and bias_width in kJ/mol.")
+        if native.grid_width is None:
+            errors.append("gap_table_metadynamics requires native_gap_bias.grid_width or metadynamics.grid_width.")
+        if native.update_scheme != "table_in_context":
+            errors.append("native_gap_bias.update_scheme must be 'table_in_context'.")
+        if native.out_of_grid not in {"clamp", "reject"}:
+            errors.append("native_gap_bias.out_of_grid must be 'clamp' or 'reject'.")
     return errors
+
+
+def resolve_native_gap_bias_settings(config: EVBConfig) -> NativeGapBiasSettings:
+    native = config.sampling.native_gap_bias
+    meta = config.sampling.metadynamics
+    return NativeGapBiasSettings(
+        method=native.method,
+        cv=native.cv or meta.cv,
+        min_value=native.min_value if native.min_value is not None else meta.min_value,
+        max_value=native.max_value if native.max_value is not None else meta.max_value,
+        grid_width=native.grid_width if native.grid_width is not None else meta.grid_width,
+        bias_width=native.bias_width if native.bias_width is not None else meta.bias_width,
+        height_kj_mol=native.height_kj_mol if native.height_kj_mol is not None else meta.height_kj_mol,
+        bias_factor=native.bias_factor if native.bias_factor is not None else meta.bias_factor,
+        temperature_k=native.temperature_k if native.temperature_k is not None else config.simulation.temperature_k,
+        frequency=native.frequency if native.frequency is not None else meta.frequency,
+        save_frequency=native.save_frequency if native.save_frequency is not None else meta.save_frequency,
+        bias_dir=native.bias_dir if native.bias_dir is not None else meta.bias_dir,
+        restart=native.restart,
+        wall_force_constant_kj_mol2=(
+            native.wall_force_constant_kj_mol2
+            if native.wall_force_constant_kj_mol2 is not None
+            else meta.wall_force_constant_kj_mol2
+        ),
+        update_scheme=native.update_scheme,
+        out_of_grid=native.out_of_grid,
+    )
 
 
 def _validate_modern_payload(data: dict[str, Any], evb_payload: dict[str, Any], coupling_payload: dict[str, Any]) -> None:

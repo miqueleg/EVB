@@ -9,13 +9,19 @@ from pathlib import Path
 
 import numpy as np
 
-from .config import EVBConfig, IRCSettings, ReferenceProfileSettings, load_config, validate_config
+from .config import EVBConfig, IRCSettings, ReferenceProfileSettings, load_config, resolve_native_gap_bias_settings, validate_config
 from .analysis import build_analysis_report, build_coupling_scan, write_coupling_scan_outputs, write_reaction_coordinate_plots
 from .engine import validate_diabatic_states
 from .evb import EVBHamiltonian, EVBParameters, calibrate_evb_parameters
 from .evb_inputs import prepare_adiabatic_system_from_irc, prepare_evb_ready_inputs
 from .fitting import fit_bootstrap_parameters, fit_ensemble_parameters
 from .io import write_json
+from .native_bias import (
+    NativeBiasSnapshot,
+    NativeGapBiasColvarWriter,
+    NativeGapBiasTable1D,
+    NativeWellTemperedGapMetadynamics1D,
+)
 from .irc import read_irc_xyz, write_irc_outputs
 from .irc_setup import setup_from_irc
 from .hg317_prep import prepare_hg317_system
@@ -25,6 +31,7 @@ from .openmm_backend import (
     EVBSystemBuilder,
     OpenMMStateEvaluator,
     build_evb_gap_cv_force,
+    evb_common_energy,
     evb_diabatic_energies,
     create_dcd_writer,
     load_positions_file,
@@ -75,6 +82,7 @@ def main() -> None:
             "evb-metad",
             "evb-opes",
             "evb-gap-metad",
+            "evb-gap-table-metad",
             "evb-gap-opes",
             "make-template",
         ],
@@ -171,6 +179,8 @@ def main() -> None:
         run_plumed_md(config, Path(args.config).parent, expected_mode="opes")
     elif args.command == "evb-gap-metad":
         run_gap_metadynamics(config)
+    elif args.command == "evb-gap-table-metad":
+        run_gap_table_metadynamics(config)
     elif args.command == "evb-gap-opes":
         raise ValueError(
             "Direct OPES on the EVB energy gap is not implemented. PLUMED cannot see the internal OpenMM EVB gap "
@@ -600,6 +610,185 @@ def run_gap_metadynamics(config: EVBConfig) -> None:
                 "Use this for direct gap acceleration; use PLUMED only for geometry CVs until a gap bridge is implemented."
             ),
         },
+    )
+
+
+def run_gap_table_metadynamics(config: EVBConfig) -> None:
+    if config.plumed.enabled:
+        raise ValueError("evb-gap-table-metad is a native OpenMM table-bias path. Disable plumed.enabled.")
+    config.sampling.mode = "gap_table_metadynamics"
+    errors = validate_config(config)
+    if errors:
+        raise ValueError("Config validation failed:\n" + "\n".join(f"- {error}" for error in errors))
+
+    native = resolve_native_gap_bias_settings(config)
+    try:
+        import openmm
+        from openmm import unit
+    except ImportError as exc:  # pragma: no cover
+        raise ImportError("OpenMM is required for evb-gap-table-metad.") from exc
+
+    output_dir = ensure_output_dir(config.output_dir).resolve()
+    bias_dir = ensure_output_dir(output_dir / (native.bias_dir or "native_bias"))
+    table = NativeGapBiasTable1D(
+        grid_min=float(native.min_value),
+        grid_max=float(native.max_value),
+        grid_width=int(native.grid_width),
+        out_of_grid=native.out_of_grid,
+    )
+    metad = NativeWellTemperedGapMetadynamics1D(
+        table=table,
+        bias_width=float(native.bias_width),
+        height_kj_mol=float(native.height_kj_mol),
+        bias_factor=float(native.bias_factor),
+        temperature_k=float(native.temperature_k),
+        frequency=int(native.frequency),
+        save_frequency=native.save_frequency,
+        bias_dir=bias_dir,
+        restart=native.restart,
+    )
+    restarted = metad.load_restart_if_requested()
+
+    builder = EVBSystemBuilder(
+        AmberSystemLoader(
+            nonbonded_method=config.simulation.nonbonded_method,
+            constraints=config.simulation.constraints,
+        )
+    )
+    state1, state2 = builder.build_from_state_files(config.state1, config.state2)
+    parameters = load_or_calibrate_parameters(config)
+    common_force_placement = "outer_system" if config.energy_decomposition.enabled else "cv_compatible"
+    if config.energy_decomposition.enabled:
+        common_force_placement = config.energy_decomposition.common_force_placement or "outer_system"
+    evb_system = builder.build_openmm_evb_system(
+        state1,
+        state2,
+        delta_alpha=parameters.delta_alpha,
+        h12=parameters.h12,
+        energy_decomposition=config.energy_decomposition.enabled,
+        energy_decomposition_mode=config.energy_decomposition.mode,
+        fallback_to_legacy_for_unsupported_terms=config.energy_decomposition.fallback_to_legacy_for_unsupported_terms,
+        report_energy_decomposition=config.energy_decomposition.report,
+        common_force_placement=common_force_placement,
+        native_gap_bias_table=table,
+        native_gap_wall_force_constant=native.wall_force_constant_kj_mol2,
+    )
+    integrator = create_integrator(
+        timestep_fs=config.simulation.timestep_fs,
+        temperature_k=config.simulation.temperature_k,
+        friction_per_ps=config.simulation.friction_per_ps,
+        integrator_name=config.simulation.integrator,
+    )
+    platform = openmm.Platform.getPlatformByName(config.simulation.platform) if config.simulation.platform else None
+    if platform is None:
+        context = openmm.Context(evb_system.system, integrator)
+    else:
+        context = openmm.Context(evb_system.system, integrator, platform)
+    if evb_system.box_vectors_nm is not None:
+        context.setPeriodicBoxVectors(*[vector * unit.nanometer for vector in evb_system.box_vectors_nm])
+    context.setPositions(select_start_positions(config, state1.positions_nm, state2.positions_nm) * unit.nanometer)
+    if restarted:
+        table.update_context(evb_system.evb_force, context)
+    if config.simulation.minimize_steps:
+        openmm.LocalEnergyMinimizer.minimize(
+            context,
+            config.simulation.minimize_tolerance * unit.kilojoule_per_mole / unit.nanometer,
+            config.simulation.minimize_steps,
+        )
+    context.setVelocitiesToTemperature(config.simulation.temperature_k * unit.kelvin, config.simulation.seed)
+
+    log_path = output_dir / "gap_table_metad_colvar.csv"
+    save_stride = config.sampling.md.save_stride or config.simulation.report_interval
+    dcd_handle, dcd_writer = create_dcd_writer(
+        str(output_dir / "gap_table_metad.dcd"),
+        evb_system.topology,
+        timestep_ps=config.simulation.timestep_fs * 1.0e-3,
+    )
+    current_step = 0
+    next_report = config.simulation.report_interval
+    next_deposit = int(native.frequency)
+    try:
+        with NativeGapBiasColvarWriter(log_path) as writer:
+            while current_step < config.simulation.steps:
+                target = min(config.simulation.steps, next_report, next_deposit)
+                advance = target - current_step
+                if advance > 0:
+                    integrator.step(advance)
+                    current_step = target
+                snapshot = _native_gap_bias_snapshot(evb_system, context, table, current_step)
+                if current_step == next_deposit:
+                    metad.maybe_deposit(current_step, snapshot.gap_kj_mol, evb_system.evb_force, context)
+                    snapshot = _native_gap_bias_snapshot(evb_system, context, table, current_step)
+                    next_deposit += int(native.frequency)
+                if current_step == next_report or current_step == config.simulation.steps:
+                    writer.write(snapshot)
+                    state = context.getState(getPositions=True)
+                    positions_nm = state.getPositions(asNumpy=True).value_in_unit(unit.nanometer)
+                    if current_step % save_stride == 0 or current_step == config.simulation.steps:
+                        write_dcd_frame(dcd_writer, positions_nm, evb_system.topology, current_step)
+                    next_report += config.simulation.report_interval
+    finally:
+        dcd_handle.close()
+    metad.save_state()
+    positions_nm = context.getState(getPositions=True).getPositions(asNumpy=True).value_in_unit(unit.nanometer)
+    write_pdb(str(output_dir / "gap_table_metad_final.pdb"), evb_system.topology, positions_nm)
+    setup = {
+        "cv": "gap",
+        "gap_units": "kJ/mol",
+        "min_value_kj_mol": native.min_value,
+        "max_value_kj_mol": native.max_value,
+        "grid_width": native.grid_width,
+        "bias_width_kj_mol": native.bias_width,
+        "height_kj_mol": native.height_kj_mol,
+        "bias_factor": native.bias_factor,
+        "frequency_steps": native.frequency,
+        "save_frequency_steps": native.save_frequency,
+        "wall_force_constant_kj_mol2": native.wall_force_constant_kj_mol2,
+        "bias_dir": str(bias_dir),
+        "restart_loaded": restarted,
+        "platform": context.getPlatform().getName(),
+        "use_app_metadynamics": False,
+        "use_bias_variable": False,
+        "energy_decomposition": evb_system.energy_decomposition_report,
+        "bias_report": evb_system.bias_report,
+        **metad.timing_report(),
+    }
+    write_json(output_dir / "gap_table_metad_setup.json", setup)
+
+
+def _native_gap_bias_snapshot(evb_system, context, table: NativeGapBiasTable1D, step: int) -> NativeBiasSnapshot:
+    from openmm import unit
+
+    energy1, energy2 = evb_diabatic_energies(evb_system, context)
+    e_common = evb_common_energy(evb_system, context)
+    delta_alpha = context.getParameter("delta_alpha")
+    h12 = context.getParameter("h12")
+    gap = energy1 - energy2 - delta_alpha
+    unbiased, w1, w2 = EVBHamiltonian(EVBParameters(delta_alpha=delta_alpha, h12=h12)).lower_eigenvalue(energy1, energy2)
+    bias = table.evaluate(gap)
+    if "k_gap_wall" in [evb_system.evb_force.getGlobalParameterName(i) for i in range(evb_system.evb_force.getNumGlobalParameters())]:
+        k_wall = context.getParameter("k_gap_wall")
+        lower = context.getParameter("gap_lower")
+        upper = context.getParameter("gap_upper")
+        if gap < lower:
+            bias += 0.5 * k_wall * (lower - gap) ** 2
+        elif gap > upper:
+            bias += 0.5 * k_wall * (gap - upper) ** 2
+    time_ps = context.getTime().value_in_unit(unit.picoseconds)
+    return NativeBiasSnapshot(
+        step=step,
+        time_ps=float(time_ps),
+        gap_kj_mol=float(gap),
+        bias_kj_mol=float(bias),
+        e1_kj_mol=float(energy1 if e_common is None else energy1 - e_common),
+        e2_kj_mol=float(energy2 if e_common is None else energy2 - e_common),
+        e_common_kj_mol=None if e_common is None else float(e_common),
+        E1_kj_mol=float(energy1),
+        E2_kj_mol=float(energy2),
+        Eevb_unbiased_kj_mol=float(unbiased),
+        Eevb_biased_kj_mol=float(unbiased + bias),
+        w1=float(w1),
+        w2=float(w2),
     )
 
 

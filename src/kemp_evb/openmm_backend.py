@@ -86,6 +86,12 @@ class EVBOpenMMSystem:
     production_restraint_force: Any | None = None
     far_field_restraint_force: Any | None = None
     energy_decomposition_report: dict[str, Any] | None = None
+    native_gap_bias: Any | None = None
+    table_bias_function_index: int | None = None
+    common_forces: list[Any] | None = None
+    common_force_group: int | None = None
+    force_groups: dict[str, int] | None = None
+    bias_report: dict[str, Any] | None = None
 
 
 @dataclass(slots=True)
@@ -240,7 +246,12 @@ class EVBSystemBuilder:
         energy_decomposition_mode: str = "exact",
         fallback_to_legacy_for_unsupported_terms: bool = True,
         report_energy_decomposition: bool = True,
+        common_force_placement: str = "cv_compatible",
+        native_gap_bias_table: Any | None = None,
+        native_gap_wall_force_constant: float | None = None,
     ) -> EVBOpenMMSystem:
+        if native_gap_wall_force_constant is not None and native_gap_bias_table is None:
+            raise ValueError("native_gap_wall_force_constant requires native_gap_bias_table so grid bounds are defined.")
         if energy_decomposition and energy_decomposition_mode == "legacy":
             energy_decomposition = False
         if energy_decomposition:
@@ -256,6 +267,9 @@ class EVBSystemBuilder:
                 add_cmmotion_remover=add_cmmotion_remover,
                 fallback_to_legacy_for_unsupported_terms=fallback_to_legacy_for_unsupported_terms,
                 report_energy_decomposition=report_energy_decomposition,
+                common_force_placement=common_force_placement,
+                native_gap_bias_table=native_gap_bias_table,
+                native_gap_wall_force_constant=native_gap_wall_force_constant,
             )
         if energy_decomposition_mode not in {"exact", "legacy"}:
             raise ValueError(f"Unsupported EVB energy decomposition mode: {energy_decomposition_mode!r}.")
@@ -271,12 +285,22 @@ class EVBSystemBuilder:
         state1_force = _build_state_energy_force(state1.system, "s1")
         state2_force = _build_state_energy_force(state2.system, "s2")
         evb_force = openmm.CustomCVForce(
-            "0.5*(e1 + e2 + delta_alpha) - sqrt(0.25*(e1 - e2 - delta_alpha)^2 + h12^2)"
+            _evb_lower_surface_expression(
+                include_native_bias=native_gap_bias_table is not None,
+                wall_force_constant=native_gap_wall_force_constant,
+            )
         )
         evb_force.addCollectiveVariable("e1", state1_force)
         evb_force.addCollectiveVariable("e2", state2_force)
         evb_force.addGlobalParameter("delta_alpha", delta_alpha)
         evb_force.addGlobalParameter("h12", h12)
+        if native_gap_wall_force_constant is not None:
+            evb_force.addGlobalParameter("k_gap_wall", float(native_gap_wall_force_constant))
+            evb_force.addGlobalParameter("gap_lower", float(native_gap_bias_table.grid_min))
+            evb_force.addGlobalParameter("gap_upper", float(native_gap_bias_table.grid_max))
+        table_bias_function_index = None
+        if native_gap_bias_table is not None:
+            table_bias_function_index = native_gap_bias_table.add_to_force(evb_force)
         system.addForce(evb_force)
         restraint_force = None
         if equilibration_restraint is not None:
@@ -312,7 +336,18 @@ class EVBSystemBuilder:
             equilibration_restraint_force=restraint_force,
             production_restraint_force=production_restraint_force,
             far_field_restraint_force=far_field_restraint_force,
-            energy_decomposition_report=_legacy_decomposition_report() if report_energy_decomposition else None,
+            energy_decomposition_report=_add_runtime_diagnostics(
+                _legacy_decomposition_report() if report_energy_decomposition else None,
+                common_force_placement="legacy",
+                e_common_inside_custom_cv=False,
+                native_gap_bias_table=native_gap_bias_table,
+            ),
+            native_gap_bias=native_gap_bias_table,
+            table_bias_function_index=table_bias_function_index,
+            common_forces=[],
+            common_force_group=None,
+            force_groups={"evb": evb_force.getForceGroup()},
+            bias_report=_native_bias_report(native_gap_bias_table),
         )
 
     def build_openmm_evb_system_decomposed(
@@ -328,7 +363,14 @@ class EVBSystemBuilder:
         add_cmmotion_remover: bool = True,
         fallback_to_legacy_for_unsupported_terms: bool = True,
         report_energy_decomposition: bool = True,
+        common_force_placement: str = "cv_compatible",
+        native_gap_bias_table: Any | None = None,
+        native_gap_wall_force_constant: float | None = None,
     ) -> EVBOpenMMSystem:
+        if common_force_placement not in {"outer_system", "cv_compatible"}:
+            raise ValueError("common_force_placement must be 'outer_system' or 'cv_compatible'.")
+        if native_gap_wall_force_constant is not None and native_gap_bias_table is None:
+            raise ValueError("native_gap_wall_force_constant requires native_gap_bias_table so grid bounds are defined.")
         self.validate_compatibility(state1, state2)
         system = openmm.System()
         for index in range(state1.system.getNumParticles()):
@@ -344,17 +386,41 @@ class EVBSystemBuilder:
             fallback_to_legacy_for_unsupported_terms=fallback_to_legacy_for_unsupported_terms,
             report_energy_decomposition=report_energy_decomposition,
         )
-        common_force = _aggregate_energy_forces(decomposition["common_forces"], "common")
+        common_outer_forces: list[Any] = []
+        common_force_group = None
+        e_common_inside_custom_cv = common_force_placement == "cv_compatible"
+        if common_force_placement == "outer_system":
+            common_force_group = 30
+            common_outer_forces = _add_common_forces_to_outer_system(
+                system,
+                decomposition["common_forces"],
+                common_force_group,
+            )
+            common_force = None
+        else:
+            common_force = _aggregate_energy_forces(decomposition["common_forces"], "common")
         state1_force = _aggregate_energy_forces(decomposition["state1_forces"], "s1")
         state2_force = _aggregate_energy_forces(decomposition["state2_forces"], "s2")
         evb_force = openmm.CustomCVForce(
-            "e_common + 0.5*(e1 + e2 + delta_alpha) - sqrt(0.25*(e1 - e2 - delta_alpha)^2 + h12^2)"
+            _evb_lower_surface_expression(
+                include_common=e_common_inside_custom_cv,
+                include_native_bias=native_gap_bias_table is not None,
+                wall_force_constant=native_gap_wall_force_constant,
+            )
         )
-        evb_force.addCollectiveVariable("e_common", common_force)
+        if e_common_inside_custom_cv:
+            evb_force.addCollectiveVariable("e_common", common_force)
         evb_force.addCollectiveVariable("e1", state1_force)
         evb_force.addCollectiveVariable("e2", state2_force)
         evb_force.addGlobalParameter("delta_alpha", delta_alpha)
         evb_force.addGlobalParameter("h12", h12)
+        if native_gap_wall_force_constant is not None:
+            evb_force.addGlobalParameter("k_gap_wall", float(native_gap_wall_force_constant))
+            evb_force.addGlobalParameter("gap_lower", float(native_gap_bias_table.grid_min))
+            evb_force.addGlobalParameter("gap_upper", float(native_gap_bias_table.grid_max))
+        table_bias_function_index = None
+        if native_gap_bias_table is not None:
+            table_bias_function_index = native_gap_bias_table.add_to_force(evb_force)
         system.addForce(evb_force)
         restraint_force = None
         if equilibration_restraint is not None:
@@ -390,7 +456,18 @@ class EVBSystemBuilder:
             equilibration_restraint_force=restraint_force,
             production_restraint_force=production_restraint_force,
             far_field_restraint_force=far_field_restraint_force,
-            energy_decomposition_report=decomposition["report"],
+            energy_decomposition_report=_add_runtime_diagnostics(
+                decomposition["report"],
+                common_force_placement=common_force_placement,
+                e_common_inside_custom_cv=e_common_inside_custom_cv,
+                native_gap_bias_table=native_gap_bias_table,
+            ),
+            native_gap_bias=native_gap_bias_table,
+            table_bias_function_index=table_bias_function_index,
+            common_forces=common_outer_forces,
+            common_force_group=common_force_group,
+            force_groups={"evb": evb_force.getForceGroup(), "common": common_force_group},
+            bias_report=_native_bias_report(native_gap_bias_table),
         )
 
     def build_openmm_gap_umbrella_system(
@@ -410,7 +487,10 @@ class EVBSystemBuilder:
         energy_decomposition_mode: str = "exact",
         fallback_to_legacy_for_unsupported_terms: bool = True,
         report_energy_decomposition: bool = True,
+        common_force_placement: str = "cv_compatible",
     ) -> EVBOpenMMSystem:
+        if common_force_placement not in {"outer_system", "cv_compatible"}:
+            raise ValueError("common_force_placement must be 'outer_system' or 'cv_compatible'.")
         self.validate_compatibility(state1, state2)
         system = openmm.System()
         for index in range(state1.system.getNumParticles()):
@@ -421,6 +501,9 @@ class EVBSystemBuilder:
             system.setDefaultPeriodicBoxVectors(*_to_box_vectors(state1.box_vectors_nm))
 
         decomposition_report = _legacy_decomposition_report() if report_energy_decomposition else None
+        common_outer_forces: list[Any] = []
+        common_force_group = None
+        e_common_inside_custom_cv = False
         if energy_decomposition and energy_decomposition_mode == "legacy":
             energy_decomposition = False
         if energy_decomposition:
@@ -430,14 +513,25 @@ class EVBSystemBuilder:
                 fallback_to_legacy_for_unsupported_terms=fallback_to_legacy_for_unsupported_terms,
                 report_energy_decomposition=report_energy_decomposition,
             )
-            common_force = _aggregate_energy_forces(decomposition["common_forces"], "common")
+            e_common_inside_custom_cv = common_force_placement == "cv_compatible"
+            if common_force_placement == "outer_system":
+                common_force_group = 30
+                common_outer_forces = _add_common_forces_to_outer_system(
+                    system,
+                    decomposition["common_forces"],
+                    common_force_group,
+                )
+                common_force = None
+            else:
+                common_force = _aggregate_energy_forces(decomposition["common_forces"], "common")
             state1_force = _aggregate_energy_forces(decomposition["state1_forces"], "s1")
             state2_force = _aggregate_energy_forces(decomposition["state2_forces"], "s2")
             evb_force = openmm.CustomCVForce(
-                "e_common + 0.5*(e1 + e2 + delta_alpha) - sqrt(0.25*(e1 - e2 - delta_alpha)^2 + h12^2)"
-                " + 0.5*k_gap*((e1 - e2 - delta_alpha)-gap_center)^2"
+                _evb_lower_surface_expression(include_common=e_common_inside_custom_cv)
+                + " + 0.5*k_gap*((e1 - e2 - delta_alpha)-gap_center)^2"
             )
-            evb_force.addCollectiveVariable("e_common", common_force)
+            if e_common_inside_custom_cv:
+                evb_force.addCollectiveVariable("e_common", common_force)
             decomposition_report = decomposition["report"]
         else:
             if energy_decomposition_mode not in {"exact", "legacy"}:
@@ -445,8 +539,8 @@ class EVBSystemBuilder:
             state1_force = _build_state_energy_force(state1.system, "s1")
             state2_force = _build_state_energy_force(state2.system, "s2")
             evb_force = openmm.CustomCVForce(
-                "0.5*(e1 + e2 + delta_alpha) - sqrt(0.25*(e1 - e2 - delta_alpha)^2 + h12^2)"
-                " + 0.5*k_gap*((e1 - e2 - delta_alpha)-gap_center)^2"
+                _evb_lower_surface_expression()
+                + " + 0.5*k_gap*((e1 - e2 - delta_alpha)-gap_center)^2"
             )
         evb_force.addCollectiveVariable("e1", state1_force)
         evb_force.addCollectiveVariable("e2", state2_force)
@@ -489,7 +583,18 @@ class EVBSystemBuilder:
             equilibration_restraint_force=restraint_force,
             production_restraint_force=production_restraint_force,
             far_field_restraint_force=far_field_restraint_force,
-            energy_decomposition_report=decomposition_report,
+            energy_decomposition_report=_add_runtime_diagnostics(
+                decomposition_report,
+                common_force_placement=common_force_placement if energy_decomposition else "legacy",
+                e_common_inside_custom_cv=e_common_inside_custom_cv,
+                native_gap_bias_table=None,
+            ),
+            native_gap_bias=None,
+            table_bias_function_index=None,
+            common_forces=common_outer_forces,
+            common_force_group=common_force_group,
+            force_groups={"evb": evb_force.getForceGroup(), "common": common_force_group},
+            bias_report=None,
         )
 
     def build_openmm_proton_transfer_umbrella_system(
@@ -680,11 +785,110 @@ def build_evb_gap_cv_force(
 
 def evb_diabatic_energies(evb_system: EVBOpenMMSystem, context: Any) -> tuple[float, float]:
     values = [float(value) for value in evb_system.evb_force.getCollectiveVariableValues(context)]
-    report = evb_system.energy_decomposition_report or {}
-    if report.get("enabled") and len(values) >= 3:
+    cv_names = [
+        evb_system.evb_force.getCollectiveVariableName(index)
+        for index in range(evb_system.evb_force.getNumCollectiveVariables())
+    ]
+    if cv_names and cv_names[0] == "e_common":
         e_common, e1, e2 = values[:3]
         return e_common + e1, e_common + e2
+    if evb_system.common_force_group is not None:
+        e_common = _context_group_energy(context, evb_system.common_force_group)
+        return e_common + values[0], e_common + values[1]
     return values[0], values[1]
+
+
+def evb_common_energy(evb_system: EVBOpenMMSystem, context: Any) -> float | None:
+    values = [float(value) for value in evb_system.evb_force.getCollectiveVariableValues(context)]
+    cv_names = [
+        evb_system.evb_force.getCollectiveVariableName(index)
+        for index in range(evb_system.evb_force.getNumCollectiveVariables())
+    ]
+    if cv_names and cv_names[0] == "e_common":
+        return values[0]
+    if evb_system.common_force_group is not None:
+        return _context_group_energy(context, evb_system.common_force_group)
+    return None
+
+
+def evb_residual_energies(evb_system: EVBOpenMMSystem, context: Any) -> tuple[float, float]:
+    values = [float(value) for value in evb_system.evb_force.getCollectiveVariableValues(context)]
+    cv_names = [
+        evb_system.evb_force.getCollectiveVariableName(index)
+        for index in range(evb_system.evb_force.getNumCollectiveVariables())
+    ]
+    if cv_names and cv_names[0] == "e_common":
+        return values[1], values[2]
+    return values[0], values[1]
+
+
+def _context_group_energy(context: Any, group: int) -> float:
+    state = context.getState(getEnergy=True, groups={int(group)})
+    return float(state.getPotentialEnergy().value_in_unit(unit.kilojoule_per_mole))
+
+
+def _evb_lower_surface_expression(
+    *,
+    include_common: bool = False,
+    include_native_bias: bool = False,
+    wall_force_constant: float | None = None,
+) -> str:
+    expression = "0.5*(e1 + e2 + delta_alpha) - sqrt(0.25*(e1 - e2 - delta_alpha)^2 + h12^2)"
+    if include_common:
+        expression = "e_common + " + expression
+    if include_native_bias:
+        expression += " + gap_bias(e1 - e2 - delta_alpha)"
+    if wall_force_constant is not None:
+        expression += " + 0.5*k_gap_wall*(step((e1 - e2 - delta_alpha)-gap_upper)*((e1 - e2 - delta_alpha)-gap_upper)^2 + step(gap_lower-(e1 - e2 - delta_alpha))*(gap_lower-(e1 - e2 - delta_alpha))^2)"
+    return expression
+
+
+def _add_common_forces_to_outer_system(system: Any, common_forces: list[Any], force_group: int) -> list[Any]:
+    outer_forces: list[Any] = []
+    for index, force in enumerate(common_forces):
+        cloned = _clone_openmm_object(force)
+        _rename_force_global_parameters(cloned, f"common_outer_{index}")
+        cloned.setForceGroup(int(force_group))
+        system.addForce(cloned)
+        outer_forces.append(cloned)
+    return outer_forces
+
+
+def _add_runtime_diagnostics(
+    report: dict[str, Any] | None,
+    *,
+    common_force_placement: str,
+    e_common_inside_custom_cv: bool,
+    native_gap_bias_table: Any | None,
+) -> dict[str, Any] | None:
+    if report is None:
+        return None
+    report = dict(report)
+    report["common_force_placement"] = common_force_placement
+    report["e_common_inside_custom_cv"] = bool(e_common_inside_custom_cv)
+    base_inner_contexts = 1
+    if e_common_inside_custom_cv:
+        base_inner_contexts += 1
+    report["custom_cv_inner_context_count"] = base_inner_contexts
+    report["native_gap_bias_uses_app_metadynamics"] = False if native_gap_bias_table is not None else None
+    report["native_gap_bias_uses_bias_variable"] = False if native_gap_bias_table is not None else None
+    return report
+
+
+def _native_bias_report(native_gap_bias_table: Any | None) -> dict[str, Any] | None:
+    if native_gap_bias_table is None:
+        return None
+    return {
+        "enabled": True,
+        "type": "NativeGapBiasTable1D",
+        "function_name": getattr(native_gap_bias_table, "function_name", "gap_bias"),
+        "function_index": native_gap_bias_table.function_index,
+        "grid_min_kj_mol": native_gap_bias_table.grid_min,
+        "grid_max_kj_mol": native_gap_bias_table.grid_max,
+        "grid_width": native_gap_bias_table.grid_width,
+        "uses_app_metadynamics": False,
+        "uses_bias_variable": False,
+    }
 
 
 def _build_distance_restraint_force(atom1: int, atom2: int, target_distance_nm: float, force_constant_kj_mol_nm2: float):

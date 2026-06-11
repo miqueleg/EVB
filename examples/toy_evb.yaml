@@ -29,6 +29,31 @@ sampling:
     temperature_k: 300.0
     nonbonded_method: NoCutoff
     constraints: None
+  metadynamics:
+    cv: gap
+    min_value: -10.0
+    max_value: 10.0
+    grid_width: 101
+    bias_width: 0.5
+    height_kj_mol: 0.2
+    bias_factor: 5.0
+    frequency: 10
+    save_frequency: 20
+    bias_dir: bias
+  native_gap_bias:
+    method: well_tempered_metadynamics
+    cv: gap
+    min_value: -10.0
+    max_value: 10.0
+    grid_width: 101
+    bias_width: 0.5
+    height_kj_mol: 0.2
+    bias_factor: 5.0
+    frequency: 10
+    save_frequency: 20
+    bias_dir: native_bias
+    restart: true
+    update_scheme: table_in_context
   windows:
     mapping:
       lambda_values: [0.0, 0.5, 1.0]
