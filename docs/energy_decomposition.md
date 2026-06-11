@@ -24,7 +24,7 @@ evb:
     report: true
 ```
 
-Existing configs without this block continue to use the legacy full-state EVB path.
+Existing configs without this block continue to use the legacy full-state EVB path. `mode: legacy` also forces the legacy path even if the block is present. In `mode: exact`, setting `fallback_to_legacy_for_unsupported_terms: false` makes unsupported differing forces a hard error.
 
 ## What Is Decomposed
 
@@ -44,9 +44,11 @@ Identical terms go to `E_common`; terms that differ remain in `e1` and `e2`.
 
 ## Unsupported Terms
 
-If a differing force cannot be decomposed exactly, it remains in the state-specific path and is reported. This preserves exactness by default.
+If a differing force cannot be decomposed exactly, behavior is controlled by `fallback_to_legacy_for_unsupported_terms`. With fallback enabled, the full force remains in the state-specific path and is reported. With fallback disabled, exact mode fails loudly instead of building a system whose decomposition is incomplete.
 
-`NonbondedForce` is only decomposed when the full force is identical between states. Differing `NonbondedForce` objects, including PME systems, are kept as full state-specific EVB contributions. No local PME approximation is used.
+`NonbondedForce` is only decomposed when the full force is identical between states. Differing `NonbondedForce` objects, including PME systems, are kept as full state-specific EVB contributions only when fallback is enabled. No local PME approximation is used in exact mode.
+
+For solvated enzyme systems, PME/nonbonded usually dominates runtime. If the report says `duplicated_full_nonbonded: true`, exact decomposition should not be expected to speed up the simulation and may be slower because it still evaluates both full PME states plus additional CV/decomposition overhead.
 
 ## Automatic Adiabatic Setup
 
@@ -79,4 +81,6 @@ python scripts/benchmark_evb_decomposition.py --config benchmarks/hg317_gap_umbr
 python scripts/benchmark_evb_decomposition.py --config benchmarks/hg317_gap_metad_benchmark.yaml --platform CUDA --workflow gap-metad --mode decomposed --steps 2000 --repeats 3 --output benchmarks/hg317_gap_metad_cuda_decomposed.json --require-inputs true --no-forces
 ```
 
-CUDA benchmarks default to `--cuda-precision mixed`; use `--cuda-precision single` or `--cuda-precision double` to override. The script records CUDA usage, platform properties, timing, mean EVB energy, shifted gap, optional force norms, decomposition counts, warnings, git SHA, and timestamp.
+CUDA benchmarks default to `--cuda-precision mixed`; use `--cuda-precision single` or `--cuda-precision double` to override. The script records CUDA usage, platform properties, timing, mean EVB energy, shifted gap, optional force norms, decomposition counts, warnings, git SHA, timestamp, partition force-class diagnostics, and full nonbonded duplication status.
+
+Native OpenMM gap metadynamics uses a separate `BiasVariable` force for the EVB gap. OpenMM does not share the already-computed lower-surface `CustomCVForce` values with metadynamics, so the gap bias evaluates its state-energy CVs separately. This is included in benchmark timing.

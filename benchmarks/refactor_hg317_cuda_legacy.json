@@ -1,36 +1,36 @@
 {
-  "config_path": "examples/toy_evb.yaml",
+  "config_path": "examples/hg317_evb_gap_metad.yaml",
   "mode": "legacy",
-  "workflow": "plain",
+  "workflow": "gap-metad",
   "platform_requested": "CUDA",
   "platform_properties": {
     "Precision": "mixed"
   },
   "cuda_available": true,
   "cuda_actually_used": true,
-  "steps": 5000,
+  "steps": 2000,
   "repeats": 3,
   "skip_md": false,
   "git_commit_sha": "63a1ce8ff5745effd3b574566fe07d99e20c3167",
-  "timestamp": "2026-06-11T13:46:01.492167+00:00",
+  "timestamp": "2026-06-11T13:46:51.097280+00:00",
   "python_version": "3.12.3 (main, Mar 23 2026, 19:04:32) [GCC 13.3.0]",
   "openmm_version": "8.5.2.dev-36a30cb",
   "results": [
     {
       "repeat": 0,
       "status": "ok",
-      "workflow": "plain",
-      "build_time_seconds": 0.0019570549484342337,
-      "context_creation_time_seconds": 0.9048617861699313,
-      "minimization_time_seconds": 0.0012706760317087173,
-      "md_wall_time_seconds": 1.4712501720059663,
-      "steps_per_second": 3398.470290870235,
-      "ns_per_day": 293.6278331311883,
-      "mean_evb_energy_kj_mol": -1.5269021494071202,
-      "mean_shifted_gap_kj_mol": -1.2126821904443204,
-      "mean_absolute_force_norm_kj_mol_nm": 49.21385801142075,
-      "number_of_atoms": 2,
-      "number_of_forces": 1,
+      "workflow": "gap-metad",
+      "build_time_seconds": 1.9839344730135053,
+      "context_creation_time_seconds": 1.8573248859029263,
+      "minimization_time_seconds": 0.5893708639778197,
+      "md_wall_time_seconds": 2.4034835109487176,
+      "steps_per_second": 832.1255339965065,
+      "ns_per_day": 17.973911534324543,
+      "mean_evb_energy_kj_mol": -386528.3173342308,
+      "mean_shifted_gap_kj_mol": -17544.47759376236,
+      "mean_absolute_force_norm_kj_mol_nm": null,
+      "number_of_atoms": 32777,
+      "number_of_forces": 3,
       "number_of_common_forces": 0,
       "number_of_state_specific_forces": 0,
       "number_of_common_terms": 0,
@@ -95,18 +95,18 @@
     {
       "repeat": 1,
       "status": "ok",
-      "workflow": "plain",
-      "build_time_seconds": 0.0004977220669388771,
-      "context_creation_time_seconds": 0.06727136811241508,
-      "minimization_time_seconds": 0.005459385924041271,
-      "md_wall_time_seconds": 0.9817694071680307,
-      "steps_per_second": 5092.845594387364,
-      "ns_per_day": 440.0218593550682,
-      "mean_evb_energy_kj_mol": -2.756299979852698,
-      "mean_shifted_gap_kj_mol": -1.3924705876968801,
-      "mean_absolute_force_norm_kj_mol_nm": 37.11647038452494,
-      "number_of_atoms": 2,
-      "number_of_forces": 1,
+      "workflow": "gap-metad",
+      "build_time_seconds": 1.9997006731573492,
+      "context_creation_time_seconds": 1.8166370422113687,
+      "minimization_time_seconds": 2.930478067835793,
+      "md_wall_time_seconds": 2.406064311042428,
+      "steps_per_second": 831.2329769496059,
+      "ns_per_day": 17.954632302111488,
+      "mean_evb_energy_kj_mol": -376158.9890343769,
+      "mean_shifted_gap_kj_mol": -17138.91254094975,
+      "mean_absolute_force_norm_kj_mol_nm": null,
+      "number_of_atoms": 32777,
+      "number_of_forces": 3,
       "number_of_common_forces": 0,
       "number_of_state_specific_forces": 0,
       "number_of_common_terms": 0,
@@ -171,18 +171,18 @@
     {
       "repeat": 2,
       "status": "ok",
-      "workflow": "plain",
-      "build_time_seconds": 0.00048001809045672417,
-      "context_creation_time_seconds": 0.06702134408988059,
-      "minimization_time_seconds": 0.005443365080282092,
-      "md_wall_time_seconds": 1.0269923661835492,
-      "steps_per_second": 4868.585361136341,
-      "ns_per_day": 420.64577520217983,
-      "mean_evb_energy_kj_mol": -2.082765239591671,
-      "mean_shifted_gap_kj_mol": -1.3736717267893255,
-      "mean_absolute_force_norm_kj_mol_nm": 48.06415656804501,
-      "number_of_atoms": 2,
-      "number_of_forces": 1,
+      "workflow": "gap-metad",
+      "build_time_seconds": 2.0246449350379407,
+      "context_creation_time_seconds": 1.8131215600296855,
+      "minimization_time_seconds": 0.6032644789665937,
+      "md_wall_time_seconds": 2.408685576170683,
+      "steps_per_second": 830.3283831589139,
+      "ns_per_day": 17.93509307623254,
+      "mean_evb_energy_kj_mol": -386425.5500520456,
+      "mean_shifted_gap_kj_mol": -16221.9125209187,
+      "mean_absolute_force_norm_kj_mol_nm": null,
+      "number_of_atoms": 32777,
+      "number_of_forces": 3,
       "number_of_common_forces": 0,
       "number_of_state_specific_forces": 0,
       "number_of_common_terms": 0,
@@ -247,39 +247,35 @@
   ],
   "summary": {
     "context_creation_time_seconds": {
-      "mean": 0.34638483279074234,
-      "std": 0.39490285406226056
+      "mean": 1.829027829381327,
+      "std": 0.020060445484956713
     },
     "minimization_time_seconds": {
-      "mean": 0.0040578090120106936,
-      "std": 0.00197081148333606
+      "mean": 1.3743711369267355,
+      "std": 1.1003483822413604
     },
     "md_wall_time_seconds": {
-      "mean": 1.1600039817858487,
-      "std": 0.22085730264952078
+      "mean": 2.406077799387276,
+      "std": 0.0021237556505681646
     },
     "steps_per_second": {
-      "mean": 4453.300415464647,
-      "std": 751.4754850152452
+      "mean": 831.2289647016754,
+      "std": 0.7336892425112445
     },
     "ns_per_day": {
-      "mean": 384.7651558961455,
-      "std": 64.92748190531718
+      "mean": 17.95454563755619,
+      "std": 0.015847687638243395
     },
     "mean_evb_energy_kj_mol": {
-      "mean": -2.1219891229504966,
-      "std": 0.5026653234809972
+      "mean": -383037.61880688445,
+      "std": 4864.106696951466
     },
     "mean_shifted_gap_kj_mol": {
-      "mean": -1.326274834976842,
-      "std": 0.08068794194002084
+      "mean": -16968.434218543607,
+      "std": 553.2279438497295
     },
-    "mean_absolute_force_norm_kj_mol_nm": {
-      "mean": 44.798161654663566,
-      "std": 5.4520172981822705
-    },
-    "number_of_atoms": 2,
-    "number_of_forces": 1,
+    "number_of_atoms": 32777,
+    "number_of_forces": 3,
     "number_of_common_forces": 0,
     "number_of_state_specific_forces": 0,
     "number_of_common_terms": 0,

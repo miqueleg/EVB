@@ -1,0 +1,605 @@
+{
+  "config_path": "examples/hg317_evb_gap_metad.yaml",
+  "mode": "decomposed",
+  "workflow": "gap-metad",
+  "platform_requested": "CUDA",
+  "platform_properties": {
+    "Precision": "mixed"
+  },
+  "cuda_available": true,
+  "cuda_actually_used": true,
+  "steps": 2000,
+  "repeats": 3,
+  "skip_md": false,
+  "git_commit_sha": "63a1ce8ff5745effd3b574566fe07d99e20c3167",
+  "timestamp": "2026-06-11T13:48:00.210196+00:00",
+  "python_version": "3.12.3 (main, Mar 23 2026, 19:04:32) [GCC 13.3.0]",
+  "openmm_version": "8.5.2.dev-36a30cb",
+  "results": [
+    {
+      "repeat": 0,
+      "status": "ok",
+      "workflow": "gap-metad",
+      "build_time_seconds": 8.442704236833379,
+      "context_creation_time_seconds": 7.802688910160214,
+      "minimization_time_seconds": 1.820551450131461,
+      "md_wall_time_seconds": 2.626517954049632,
+      "steps_per_second": 761.4644312316043,
+      "ns_per_day": 16.447631714602654,
+      "mean_evb_energy_kj_mol": -385808.90979237703,
+      "mean_shifted_gap_kj_mol": -13110.512771239111,
+      "mean_absolute_force_norm_kj_mol_nm": null,
+      "number_of_atoms": 32777,
+      "number_of_forces": 3,
+      "number_of_common_forces": 3,
+      "number_of_state_specific_forces": 8,
+      "number_of_common_terms": 33552,
+      "number_of_state_specific_terms": 171779,
+      "warnings": [
+        "Exact decomposition still evaluates full state-specific NonbondedForce objects for both states; PME/nonbonded cost is duplicated and speedup should not be expected.",
+        "NonbondedForce differs between states and cannot be decomposed exactly in PME/local nonbonded form; full state-specific NonbondedForce objects are required unless fallback is disabled."
+      ],
+      "duplicated_full_nonbonded": true,
+      "decomposition_partitions": {
+        "common": {
+          "n_forces": 3,
+          "forces_by_class": {
+            "HarmonicBondForce": 1,
+            "HarmonicAngleForce": 1,
+            "PeriodicTorsionForce": 1
+          },
+          "has_nonbonded_force": false,
+          "nonbonded_forces": []
+        },
+        "state1": {
+          "n_forces": 4,
+          "forces_by_class": {
+            "HarmonicBondForce": 1,
+            "HarmonicAngleForce": 1,
+            "PeriodicTorsionForce": 1,
+            "NonbondedForce": 1
+          },
+          "has_nonbonded_force": true,
+          "nonbonded_forces": [
+            {
+              "class": "NonbondedForce",
+              "force_group": 0,
+              "particles": 32777,
+              "exceptions": 53093,
+              "nonbonded_method": "PME",
+              "uses_periodic_boundary_conditions": true,
+              "full_system": true,
+              "reduced_or_correction_only": false,
+              "performance_relevance": "dominant_full_system"
+            }
+          ]
+        },
+        "state2": {
+          "n_forces": 4,
+          "forces_by_class": {
+            "HarmonicBondForce": 1,
+            "HarmonicAngleForce": 1,
+            "PeriodicTorsionForce": 1,
+            "NonbondedForce": 1
+          },
+          "has_nonbonded_force": true,
+          "nonbonded_forces": [
+            {
+              "class": "NonbondedForce",
+              "force_group": 0,
+              "particles": 32777,
+              "exceptions": 53090,
+              "nonbonded_method": "PME",
+              "uses_periodic_boundary_conditions": true,
+              "full_system": true,
+              "reduced_or_correction_only": false,
+              "performance_relevance": "dominant_full_system"
+            }
+          ]
+        }
+      },
+      "decomposition_report": {
+        "enabled": true,
+        "mode": "exact",
+        "n_common_forces": 3,
+        "n_state1_forces": 4,
+        "n_state2_forces": 4,
+        "n_common_terms": 33552,
+        "n_state1_terms": 85898,
+        "n_state2_terms": 85881,
+        "unsupported_forces": [
+          "NonbondedForce"
+        ],
+        "warnings": [
+          "Exact decomposition still evaluates full state-specific NonbondedForce objects for both states; PME/nonbonded cost is duplicated and speedup should not be expected.",
+          "NonbondedForce differs between states and cannot be decomposed exactly in PME/local nonbonded form; full state-specific NonbondedForce objects are required unless fallback is disabled."
+        ],
+        "partitions": {
+          "common": {
+            "n_forces": 3,
+            "forces_by_class": {
+              "HarmonicBondForce": 1,
+              "HarmonicAngleForce": 1,
+              "PeriodicTorsionForce": 1
+            },
+            "has_nonbonded_force": false,
+            "nonbonded_forces": []
+          },
+          "state1": {
+            "n_forces": 4,
+            "forces_by_class": {
+              "HarmonicBondForce": 1,
+              "HarmonicAngleForce": 1,
+              "PeriodicTorsionForce": 1,
+              "NonbondedForce": 1
+            },
+            "has_nonbonded_force": true,
+            "nonbonded_forces": [
+              {
+                "class": "NonbondedForce",
+                "force_group": 0,
+                "particles": 32777,
+                "exceptions": 53093,
+                "nonbonded_method": "PME",
+                "uses_periodic_boundary_conditions": true,
+                "full_system": true,
+                "reduced_or_correction_only": false,
+                "performance_relevance": "dominant_full_system"
+              }
+            ]
+          },
+          "state2": {
+            "n_forces": 4,
+            "forces_by_class": {
+              "HarmonicBondForce": 1,
+              "HarmonicAngleForce": 1,
+              "PeriodicTorsionForce": 1,
+              "NonbondedForce": 1
+            },
+            "has_nonbonded_force": true,
+            "nonbonded_forces": [
+              {
+                "class": "NonbondedForce",
+                "force_group": 0,
+                "particles": 32777,
+                "exceptions": 53090,
+                "nonbonded_method": "PME",
+                "uses_periodic_boundary_conditions": true,
+                "full_system": true,
+                "reduced_or_correction_only": false,
+                "performance_relevance": "dominant_full_system"
+              }
+            ]
+          }
+        },
+        "duplicated_full_nonbonded": true,
+        "performance_warnings": [
+          "Exact decomposition still evaluates full state-specific NonbondedForce objects for both states; PME/nonbonded cost is duplicated and speedup should not be expected."
+        ]
+      }
+    },
+    {
+      "repeat": 1,
+      "status": "ok",
+      "workflow": "gap-metad",
+      "build_time_seconds": 8.30690058786422,
+      "context_creation_time_seconds": 7.8498447181191295,
+      "minimization_time_seconds": 0.6509541689883918,
+      "md_wall_time_seconds": 2.618823060998693,
+      "steps_per_second": 763.7018436966475,
+      "ns_per_day": 16.495959823847585,
+      "mean_evb_energy_kj_mol": -385288.9486376677,
+      "mean_shifted_gap_kj_mol": -15195.129411085134,
+      "mean_absolute_force_norm_kj_mol_nm": null,
+      "number_of_atoms": 32777,
+      "number_of_forces": 3,
+      "number_of_common_forces": 3,
+      "number_of_state_specific_forces": 8,
+      "number_of_common_terms": 33552,
+      "number_of_state_specific_terms": 171779,
+      "warnings": [
+        "Exact decomposition still evaluates full state-specific NonbondedForce objects for both states; PME/nonbonded cost is duplicated and speedup should not be expected.",
+        "NonbondedForce differs between states and cannot be decomposed exactly in PME/local nonbonded form; full state-specific NonbondedForce objects are required unless fallback is disabled."
+      ],
+      "duplicated_full_nonbonded": true,
+      "decomposition_partitions": {
+        "common": {
+          "n_forces": 3,
+          "forces_by_class": {
+            "HarmonicBondForce": 1,
+            "HarmonicAngleForce": 1,
+            "PeriodicTorsionForce": 1
+          },
+          "has_nonbonded_force": false,
+          "nonbonded_forces": []
+        },
+        "state1": {
+          "n_forces": 4,
+          "forces_by_class": {
+            "HarmonicBondForce": 1,
+            "HarmonicAngleForce": 1,
+            "PeriodicTorsionForce": 1,
+            "NonbondedForce": 1
+          },
+          "has_nonbonded_force": true,
+          "nonbonded_forces": [
+            {
+              "class": "NonbondedForce",
+              "force_group": 0,
+              "particles": 32777,
+              "exceptions": 53093,
+              "nonbonded_method": "PME",
+              "uses_periodic_boundary_conditions": true,
+              "full_system": true,
+              "reduced_or_correction_only": false,
+              "performance_relevance": "dominant_full_system"
+            }
+          ]
+        },
+        "state2": {
+          "n_forces": 4,
+          "forces_by_class": {
+            "HarmonicBondForce": 1,
+            "HarmonicAngleForce": 1,
+            "PeriodicTorsionForce": 1,
+            "NonbondedForce": 1
+          },
+          "has_nonbonded_force": true,
+          "nonbonded_forces": [
+            {
+              "class": "NonbondedForce",
+              "force_group": 0,
+              "particles": 32777,
+              "exceptions": 53090,
+              "nonbonded_method": "PME",
+              "uses_periodic_boundary_conditions": true,
+              "full_system": true,
+              "reduced_or_correction_only": false,
+              "performance_relevance": "dominant_full_system"
+            }
+          ]
+        }
+      },
+      "decomposition_report": {
+        "enabled": true,
+        "mode": "exact",
+        "n_common_forces": 3,
+        "n_state1_forces": 4,
+        "n_state2_forces": 4,
+        "n_common_terms": 33552,
+        "n_state1_terms": 85898,
+        "n_state2_terms": 85881,
+        "unsupported_forces": [
+          "NonbondedForce"
+        ],
+        "warnings": [
+          "Exact decomposition still evaluates full state-specific NonbondedForce objects for both states; PME/nonbonded cost is duplicated and speedup should not be expected.",
+          "NonbondedForce differs between states and cannot be decomposed exactly in PME/local nonbonded form; full state-specific NonbondedForce objects are required unless fallback is disabled."
+        ],
+        "partitions": {
+          "common": {
+            "n_forces": 3,
+            "forces_by_class": {
+              "HarmonicBondForce": 1,
+              "HarmonicAngleForce": 1,
+              "PeriodicTorsionForce": 1
+            },
+            "has_nonbonded_force": false,
+            "nonbonded_forces": []
+          },
+          "state1": {
+            "n_forces": 4,
+            "forces_by_class": {
+              "HarmonicBondForce": 1,
+              "HarmonicAngleForce": 1,
+              "PeriodicTorsionForce": 1,
+              "NonbondedForce": 1
+            },
+            "has_nonbonded_force": true,
+            "nonbonded_forces": [
+              {
+                "class": "NonbondedForce",
+                "force_group": 0,
+                "particles": 32777,
+                "exceptions": 53093,
+                "nonbonded_method": "PME",
+                "uses_periodic_boundary_conditions": true,
+                "full_system": true,
+                "reduced_or_correction_only": false,
+                "performance_relevance": "dominant_full_system"
+              }
+            ]
+          },
+          "state2": {
+            "n_forces": 4,
+            "forces_by_class": {
+              "HarmonicBondForce": 1,
+              "HarmonicAngleForce": 1,
+              "PeriodicTorsionForce": 1,
+              "NonbondedForce": 1
+            },
+            "has_nonbonded_force": true,
+            "nonbonded_forces": [
+              {
+                "class": "NonbondedForce",
+                "force_group": 0,
+                "particles": 32777,
+                "exceptions": 53090,
+                "nonbonded_method": "PME",
+                "uses_periodic_boundary_conditions": true,
+                "full_system": true,
+                "reduced_or_correction_only": false,
+                "performance_relevance": "dominant_full_system"
+              }
+            ]
+          }
+        },
+        "duplicated_full_nonbonded": true,
+        "performance_warnings": [
+          "Exact decomposition still evaluates full state-specific NonbondedForce objects for both states; PME/nonbonded cost is duplicated and speedup should not be expected."
+        ]
+      }
+    },
+    {
+      "repeat": 2,
+      "status": "ok",
+      "workflow": "gap-metad",
+      "build_time_seconds": 8.406857836991549,
+      "context_creation_time_seconds": 7.826642286032438,
+      "minimization_time_seconds": 2.2844413940329105,
+      "md_wall_time_seconds": 2.622815439943224,
+      "steps_per_second": 762.5393573416259,
+      "ns_per_day": 16.470850118579122,
+      "mean_evb_energy_kj_mol": -386639.02200523956,
+      "mean_shifted_gap_kj_mol": -15489.942815342147,
+      "mean_absolute_force_norm_kj_mol_nm": null,
+      "number_of_atoms": 32777,
+      "number_of_forces": 3,
+      "number_of_common_forces": 3,
+      "number_of_state_specific_forces": 8,
+      "number_of_common_terms": 33552,
+      "number_of_state_specific_terms": 171779,
+      "warnings": [
+        "Exact decomposition still evaluates full state-specific NonbondedForce objects for both states; PME/nonbonded cost is duplicated and speedup should not be expected.",
+        "NonbondedForce differs between states and cannot be decomposed exactly in PME/local nonbonded form; full state-specific NonbondedForce objects are required unless fallback is disabled."
+      ],
+      "duplicated_full_nonbonded": true,
+      "decomposition_partitions": {
+        "common": {
+          "n_forces": 3,
+          "forces_by_class": {
+            "HarmonicBondForce": 1,
+            "HarmonicAngleForce": 1,
+            "PeriodicTorsionForce": 1
+          },
+          "has_nonbonded_force": false,
+          "nonbonded_forces": []
+        },
+        "state1": {
+          "n_forces": 4,
+          "forces_by_class": {
+            "HarmonicBondForce": 1,
+            "HarmonicAngleForce": 1,
+            "PeriodicTorsionForce": 1,
+            "NonbondedForce": 1
+          },
+          "has_nonbonded_force": true,
+          "nonbonded_forces": [
+            {
+              "class": "NonbondedForce",
+              "force_group": 0,
+              "particles": 32777,
+              "exceptions": 53093,
+              "nonbonded_method": "PME",
+              "uses_periodic_boundary_conditions": true,
+              "full_system": true,
+              "reduced_or_correction_only": false,
+              "performance_relevance": "dominant_full_system"
+            }
+          ]
+        },
+        "state2": {
+          "n_forces": 4,
+          "forces_by_class": {
+            "HarmonicBondForce": 1,
+            "HarmonicAngleForce": 1,
+            "PeriodicTorsionForce": 1,
+            "NonbondedForce": 1
+          },
+          "has_nonbonded_force": true,
+          "nonbonded_forces": [
+            {
+              "class": "NonbondedForce",
+              "force_group": 0,
+              "particles": 32777,
+              "exceptions": 53090,
+              "nonbonded_method": "PME",
+              "uses_periodic_boundary_conditions": true,
+              "full_system": true,
+              "reduced_or_correction_only": false,
+              "performance_relevance": "dominant_full_system"
+            }
+          ]
+        }
+      },
+      "decomposition_report": {
+        "enabled": true,
+        "mode": "exact",
+        "n_common_forces": 3,
+        "n_state1_forces": 4,
+        "n_state2_forces": 4,
+        "n_common_terms": 33552,
+        "n_state1_terms": 85898,
+        "n_state2_terms": 85881,
+        "unsupported_forces": [
+          "NonbondedForce"
+        ],
+        "warnings": [
+          "Exact decomposition still evaluates full state-specific NonbondedForce objects for both states; PME/nonbonded cost is duplicated and speedup should not be expected.",
+          "NonbondedForce differs between states and cannot be decomposed exactly in PME/local nonbonded form; full state-specific NonbondedForce objects are required unless fallback is disabled."
+        ],
+        "partitions": {
+          "common": {
+            "n_forces": 3,
+            "forces_by_class": {
+              "HarmonicBondForce": 1,
+              "HarmonicAngleForce": 1,
+              "PeriodicTorsionForce": 1
+            },
+            "has_nonbonded_force": false,
+            "nonbonded_forces": []
+          },
+          "state1": {
+            "n_forces": 4,
+            "forces_by_class": {
+              "HarmonicBondForce": 1,
+              "HarmonicAngleForce": 1,
+              "PeriodicTorsionForce": 1,
+              "NonbondedForce": 1
+            },
+            "has_nonbonded_force": true,
+            "nonbonded_forces": [
+              {
+                "class": "NonbondedForce",
+                "force_group": 0,
+                "particles": 32777,
+                "exceptions": 53093,
+                "nonbonded_method": "PME",
+                "uses_periodic_boundary_conditions": true,
+                "full_system": true,
+                "reduced_or_correction_only": false,
+                "performance_relevance": "dominant_full_system"
+              }
+            ]
+          },
+          "state2": {
+            "n_forces": 4,
+            "forces_by_class": {
+              "HarmonicBondForce": 1,
+              "HarmonicAngleForce": 1,
+              "PeriodicTorsionForce": 1,
+              "NonbondedForce": 1
+            },
+            "has_nonbonded_force": true,
+            "nonbonded_forces": [
+              {
+                "class": "NonbondedForce",
+                "force_group": 0,
+                "particles": 32777,
+                "exceptions": 53090,
+                "nonbonded_method": "PME",
+                "uses_periodic_boundary_conditions": true,
+                "full_system": true,
+                "reduced_or_correction_only": false,
+                "performance_relevance": "dominant_full_system"
+              }
+            ]
+          }
+        },
+        "duplicated_full_nonbonded": true,
+        "performance_warnings": [
+          "Exact decomposition still evaluates full state-specific NonbondedForce objects for both states; PME/nonbonded cost is duplicated and speedup should not be expected."
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "context_creation_time_seconds": {
+      "mean": 7.8263919714372605,
+      "std": 0.019252091645878492
+    },
+    "minimization_time_seconds": {
+      "mean": 1.585315671050921,
+      "std": 0.6873000472455641
+    },
+    "md_wall_time_seconds": {
+      "mean": 2.6227188183305166,
+      "std": 0.0031421697989742078
+    },
+    "steps_per_second": {
+      "mean": 762.5685440899592,
+      "std": 0.9136529371672146
+    },
+    "ns_per_day": {
+      "mean": 16.47148055234312,
+      "std": 0.019734903442810637
+    },
+    "mean_evb_energy_kj_mol": {
+      "mean": -385912.2934784281,
+      "std": 555.9920049562093
+    },
+    "mean_shifted_gap_kj_mol": {
+      "mean": -14598.528332555463,
+      "std": 1059.0472035032615
+    },
+    "number_of_atoms": 32777,
+    "number_of_forces": 3,
+    "number_of_common_forces": 3,
+    "number_of_state_specific_forces": 8,
+    "number_of_common_terms": 33552,
+    "number_of_state_specific_terms": 171779,
+    "warnings": [
+      "Exact decomposition still evaluates full state-specific NonbondedForce objects for both states; PME/nonbonded cost is duplicated and speedup should not be expected.",
+      "NonbondedForce differs between states and cannot be decomposed exactly in PME/local nonbonded form; full state-specific NonbondedForce objects are required unless fallback is disabled."
+    ],
+    "duplicated_full_nonbonded": true,
+    "decomposition_partitions": {
+      "common": {
+        "n_forces": 3,
+        "forces_by_class": {
+          "HarmonicBondForce": 1,
+          "HarmonicAngleForce": 1,
+          "PeriodicTorsionForce": 1
+        },
+        "has_nonbonded_force": false,
+        "nonbonded_forces": []
+      },
+      "state1": {
+        "n_forces": 4,
+        "forces_by_class": {
+          "HarmonicBondForce": 1,
+          "HarmonicAngleForce": 1,
+          "PeriodicTorsionForce": 1,
+          "NonbondedForce": 1
+        },
+        "has_nonbonded_force": true,
+        "nonbonded_forces": [
+          {
+            "class": "NonbondedForce",
+            "force_group": 0,
+            "particles": 32777,
+            "exceptions": 53093,
+            "nonbonded_method": "PME",
+            "uses_periodic_boundary_conditions": true,
+            "full_system": true,
+            "reduced_or_correction_only": false,
+            "performance_relevance": "dominant_full_system"
+          }
+        ]
+      },
+      "state2": {
+        "n_forces": 4,
+        "forces_by_class": {
+          "HarmonicBondForce": 1,
+          "HarmonicAngleForce": 1,
+          "PeriodicTorsionForce": 1,
+          "NonbondedForce": 1
+        },
+        "has_nonbonded_force": true,
+        "nonbonded_forces": [
+          {
+            "class": "NonbondedForce",
+            "force_group": 0,
+            "particles": 32777,
+            "exceptions": 53090,
+            "nonbonded_method": "PME",
+            "uses_periodic_boundary_conditions": true,
+            "full_system": true,
+            "reduced_or_correction_only": false,
+            "performance_relevance": "dominant_full_system"
+          }
+        ]
+      }
+    }
+  }
+}

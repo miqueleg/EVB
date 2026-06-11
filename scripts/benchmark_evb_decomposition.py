@@ -111,9 +111,19 @@ def _build_system(builder, state1, state2, params, config, args):
             gap_center=center,
             gap_force_constant=k,
             energy_decomposition=enabled,
+            energy_decomposition_mode="exact",
+            fallback_to_legacy_for_unsupported_terms=True,
+            report_energy_decomposition=True,
         )
     if enabled:
-        return builder.build_openmm_evb_system_decomposed(state1, state2, params.delta_alpha, params.h12)
+        return builder.build_openmm_evb_system_decomposed(
+            state1,
+            state2,
+            params.delta_alpha,
+            params.h12,
+            fallback_to_legacy_for_unsupported_terms=True,
+            report_energy_decomposition=True,
+        )
     return builder.build_openmm_evb_system(state1, state2, params.delta_alpha, params.h12)
 
 
@@ -168,6 +178,8 @@ def run_once(args: argparse.Namespace, repeat_index: int) -> dict[str, Any]:
             params.delta_alpha,
             prefix=f"bench_gap_metad_{repeat_index}",
             energy_decomposition=args.mode == "decomposed",
+            energy_decomposition_mode="exact",
+            fallback_to_legacy_for_unsupported_terms=True,
         )
         variable = app.BiasVariable(
             gap_cv,
@@ -263,6 +275,8 @@ def run_once(args: argparse.Namespace, repeat_index: int) -> dict[str, Any]:
         "number_of_common_terms": int(report.get("n_common_terms", 0)),
         "number_of_state_specific_terms": int(report.get("n_state1_terms", 0)) + int(report.get("n_state2_terms", 0)),
         "warnings": list(report.get("warnings", [])),
+        "duplicated_full_nonbonded": bool(report.get("duplicated_full_nonbonded", False)),
+        "decomposition_partitions": report.get("partitions", {}),
         "decomposition_report": report,
     }
 
@@ -298,6 +312,8 @@ def summarize(results: list[dict[str, Any]]) -> dict[str, Any]:
     for item in ok:
         warnings.extend(item.get("warnings", []))
     summary["warnings"] = sorted(set(warnings))
+    summary["duplicated_full_nonbonded"] = any(item.get("duplicated_full_nonbonded", False) for item in ok)
+    summary["decomposition_partitions"] = ok[0].get("decomposition_partitions", {})
     return summary
 
 

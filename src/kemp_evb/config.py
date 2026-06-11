@@ -740,10 +740,8 @@ def validate_config(config: EVBConfig) -> list[str]:
         errors.append("evb.coupling_model.parameters.delta_alpha_kj_mol is required.")
     if config.evb_parameters.h12 is None:
         errors.append("evb.coupling_model.parameters.h12_kj_mol is required.")
-    if config.energy_decomposition.enabled and config.energy_decomposition.mode != "exact":
-        errors.append("evb.energy_decomposition.mode must be 'exact'.")
-    if config.energy_decomposition.enabled and not config.energy_decomposition.fallback_to_legacy_for_unsupported_terms:
-        errors.append("Exact energy decomposition currently requires fallback_to_legacy_for_unsupported_terms: true.")
+    if config.energy_decomposition.enabled and config.energy_decomposition.mode not in {"exact", "legacy"}:
+        errors.append("evb.energy_decomposition.mode must be 'exact' or 'legacy'.")
     if config.sampling.mode not in {"mapping", "gap_umbrella", "proton_transfer_umbrella", "gap_metadynamics"}:
         errors.append(f"Unsupported sampling.mode {config.sampling.mode!r}.")
     if config.sampling.mode == "mapping" and not config.sampling.windows.mapping.lambda_values:

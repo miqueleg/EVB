@@ -358,6 +358,9 @@ def run_plumed_md(config: EVBConfig, base_dir: str | Path = ".", expected_mode: 
         delta_alpha=parameters.delta_alpha,
         h12=parameters.h12,
         energy_decomposition=config.energy_decomposition.enabled,
+        energy_decomposition_mode=config.energy_decomposition.mode,
+        fallback_to_legacy_for_unsupported_terms=config.energy_decomposition.fallback_to_legacy_for_unsupported_terms,
+        report_energy_decomposition=config.energy_decomposition.report,
     )
     output_dir = ensure_output_dir(config.output_dir)
     write_json(
@@ -497,6 +500,9 @@ def run_gap_metadynamics(config: EVBConfig) -> None:
         delta_alpha=parameters.delta_alpha,
         h12=parameters.h12,
         energy_decomposition=config.energy_decomposition.enabled,
+        energy_decomposition_mode=config.energy_decomposition.mode,
+        fallback_to_legacy_for_unsupported_terms=config.energy_decomposition.fallback_to_legacy_for_unsupported_terms,
+        report_energy_decomposition=config.energy_decomposition.report,
     )
     if meta.wall_force_constant_kj_mol2 is not None:
         wall_cv = build_evb_gap_cv_force(
@@ -505,6 +511,8 @@ def run_gap_metadynamics(config: EVBConfig) -> None:
             parameters.delta_alpha,
             prefix="gap_wall",
             energy_decomposition=config.energy_decomposition.enabled,
+            energy_decomposition_mode=config.energy_decomposition.mode,
+            fallback_to_legacy_for_unsupported_terms=config.energy_decomposition.fallback_to_legacy_for_unsupported_terms,
         )
         wall_force = openmm.CustomCVForce(
             "0.5*k_gap_wall*(step(gap-gap_upper)*(gap-gap_upper)^2 + step(gap_lower-gap)*(gap-gap_lower)^2)"
@@ -520,6 +528,8 @@ def run_gap_metadynamics(config: EVBConfig) -> None:
         parameters.delta_alpha,
         prefix="gap_metad",
         energy_decomposition=config.energy_decomposition.enabled,
+        energy_decomposition_mode=config.energy_decomposition.mode,
+        fallback_to_legacy_for_unsupported_terms=config.energy_decomposition.fallback_to_legacy_for_unsupported_terms,
     )
     variable = app.BiasVariable(
         gap_cv,
@@ -924,6 +934,9 @@ def build_simulation(config: EVBConfig, mode: str) -> EVBSimulation:
         delta_alpha=parameters.delta_alpha,
         h12=parameters.h12,
         energy_decomposition=config.energy_decomposition.enabled,
+        energy_decomposition_mode=config.energy_decomposition.mode,
+        fallback_to_legacy_for_unsupported_terms=config.energy_decomposition.fallback_to_legacy_for_unsupported_terms,
+        report_energy_decomposition=config.energy_decomposition.report,
     )
     integrator_name = config.simulation.integrator if mode == "md" else "Verlet"
     integrator = create_integrator(

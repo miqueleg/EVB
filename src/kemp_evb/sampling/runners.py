@@ -397,6 +397,9 @@ class GapUmbrellaWindowRunner:
             far_field_restraint=_resolve_far_field_restraint(self.config, self.state1.positions_nm),
             unconstrained_atoms=_reactive_constraint_exclusions(self.config),
             energy_decomposition=self.config.energy_decomposition.enabled,
+            energy_decomposition_mode=self.config.energy_decomposition.mode,
+            fallback_to_legacy_for_unsupported_terms=self.config.energy_decomposition.fallback_to_legacy_for_unsupported_terms,
+            report_energy_decomposition=self.config.energy_decomposition.report,
         )
         integrator = create_integrator(
             timestep_fs=self.config.sampling.integrator.timestep_fs,

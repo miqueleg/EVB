@@ -237,7 +237,12 @@ class EVBSystemBuilder:
         unconstrained_atoms: set[int] | None = None,
         add_cmmotion_remover: bool = True,
         energy_decomposition: bool = False,
+        energy_decomposition_mode: str = "exact",
+        fallback_to_legacy_for_unsupported_terms: bool = True,
+        report_energy_decomposition: bool = True,
     ) -> EVBOpenMMSystem:
+        if energy_decomposition and energy_decomposition_mode == "legacy":
+            energy_decomposition = False
         if energy_decomposition:
             return self.build_openmm_evb_system_decomposed(
                 state1,
@@ -249,7 +254,11 @@ class EVBSystemBuilder:
                 far_field_restraint=far_field_restraint,
                 unconstrained_atoms=unconstrained_atoms,
                 add_cmmotion_remover=add_cmmotion_remover,
+                fallback_to_legacy_for_unsupported_terms=fallback_to_legacy_for_unsupported_terms,
+                report_energy_decomposition=report_energy_decomposition,
             )
+        if energy_decomposition_mode not in {"exact", "legacy"}:
+            raise ValueError(f"Unsupported EVB energy decomposition mode: {energy_decomposition_mode!r}.")
         self.validate_compatibility(state1, state2)
         system = openmm.System()
         for index in range(state1.system.getNumParticles()):
@@ -303,7 +312,7 @@ class EVBSystemBuilder:
             equilibration_restraint_force=restraint_force,
             production_restraint_force=production_restraint_force,
             far_field_restraint_force=far_field_restraint_force,
-            energy_decomposition_report=_legacy_decomposition_report(),
+            energy_decomposition_report=_legacy_decomposition_report() if report_energy_decomposition else None,
         )
 
     def build_openmm_evb_system_decomposed(
@@ -317,6 +326,8 @@ class EVBSystemBuilder:
         far_field_restraint: tuple[list[int], np.ndarray, float] | None = None,
         unconstrained_atoms: set[int] | None = None,
         add_cmmotion_remover: bool = True,
+        fallback_to_legacy_for_unsupported_terms: bool = True,
+        report_energy_decomposition: bool = True,
     ) -> EVBOpenMMSystem:
         self.validate_compatibility(state1, state2)
         system = openmm.System()
@@ -327,7 +338,12 @@ class EVBSystemBuilder:
         if state1.box_vectors_nm is not None:
             system.setDefaultPeriodicBoxVectors(*_to_box_vectors(state1.box_vectors_nm))
 
-        decomposition = _decompose_system_forces(state1.system, state2.system)
+        decomposition = _decompose_system_forces(
+            state1.system,
+            state2.system,
+            fallback_to_legacy_for_unsupported_terms=fallback_to_legacy_for_unsupported_terms,
+            report_energy_decomposition=report_energy_decomposition,
+        )
         common_force = _aggregate_energy_forces(decomposition["common_forces"], "common")
         state1_force = _aggregate_energy_forces(decomposition["state1_forces"], "s1")
         state2_force = _aggregate_energy_forces(decomposition["state2_forces"], "s2")
@@ -391,6 +407,9 @@ class EVBSystemBuilder:
         unconstrained_atoms: set[int] | None = None,
         add_cmmotion_remover: bool = True,
         energy_decomposition: bool = False,
+        energy_decomposition_mode: str = "exact",
+        fallback_to_legacy_for_unsupported_terms: bool = True,
+        report_energy_decomposition: bool = True,
     ) -> EVBOpenMMSystem:
         self.validate_compatibility(state1, state2)
         system = openmm.System()
@@ -401,9 +420,16 @@ class EVBSystemBuilder:
         if state1.box_vectors_nm is not None:
             system.setDefaultPeriodicBoxVectors(*_to_box_vectors(state1.box_vectors_nm))
 
-        decomposition_report = _legacy_decomposition_report()
+        decomposition_report = _legacy_decomposition_report() if report_energy_decomposition else None
+        if energy_decomposition and energy_decomposition_mode == "legacy":
+            energy_decomposition = False
         if energy_decomposition:
-            decomposition = _decompose_system_forces(state1.system, state2.system)
+            decomposition = _decompose_system_forces(
+                state1.system,
+                state2.system,
+                fallback_to_legacy_for_unsupported_terms=fallback_to_legacy_for_unsupported_terms,
+                report_energy_decomposition=report_energy_decomposition,
+            )
             common_force = _aggregate_energy_forces(decomposition["common_forces"], "common")
             state1_force = _aggregate_energy_forces(decomposition["state1_forces"], "s1")
             state2_force = _aggregate_energy_forces(decomposition["state2_forces"], "s2")
@@ -414,6 +440,8 @@ class EVBSystemBuilder:
             evb_force.addCollectiveVariable("e_common", common_force)
             decomposition_report = decomposition["report"]
         else:
+            if energy_decomposition_mode not in {"exact", "legacy"}:
+                raise ValueError(f"Unsupported EVB energy decomposition mode: {energy_decomposition_mode!r}.")
             state1_force = _build_state_energy_force(state1.system, "s1")
             state2_force = _build_state_energy_force(state2.system, "s2")
             evb_force = openmm.CustomCVForce(
@@ -622,14 +650,25 @@ def build_evb_gap_cv_force(
     delta_alpha: float,
     prefix: str = "gap",
     energy_decomposition: bool = False,
+    energy_decomposition_mode: str = "exact",
+    fallback_to_legacy_for_unsupported_terms: bool = True,
 ):
     """Build a CustomCVForce for gap = E1 - E2 - delta_alpha in kJ/mol."""
     _require_openmm()
+    if energy_decomposition and energy_decomposition_mode == "legacy":
+        energy_decomposition = False
     if energy_decomposition:
-        decomposition = _decompose_system_forces(state1_system, state2_system)
+        decomposition = _decompose_system_forces(
+            state1_system,
+            state2_system,
+            fallback_to_legacy_for_unsupported_terms=fallback_to_legacy_for_unsupported_terms,
+            report_energy_decomposition=False,
+        )
         state1_force = _aggregate_energy_forces(decomposition["state1_forces"], f"{prefix}_s1")
         state2_force = _aggregate_energy_forces(decomposition["state2_forces"], f"{prefix}_s2")
     else:
+        if energy_decomposition_mode not in {"exact", "legacy"}:
+            raise ValueError(f"Unsupported EVB energy decomposition mode: {energy_decomposition_mode!r}.")
         state1_force = _build_state_energy_force(state1_system, f"{prefix}_s1")
         state2_force = _build_state_energy_force(state2_system, f"{prefix}_s2")
     gap_force = openmm.CustomCVForce("e1 - e2 - delta_alpha")
@@ -774,6 +813,7 @@ def create_dcd_writer(path: str, topology: Any, timestep_ps: float) -> Any:
 
 
 def _legacy_decomposition_report() -> dict[str, Any]:
+    empty_partition = _partition_diagnostics([], 0)
     return {
         "enabled": False,
         "mode": "legacy",
@@ -785,10 +825,23 @@ def _legacy_decomposition_report() -> dict[str, Any]:
         "n_state2_terms": 0,
         "unsupported_forces": [],
         "warnings": [],
+        "partitions": {
+            "common": empty_partition,
+            "state1": empty_partition,
+            "state2": empty_partition,
+        },
+        "duplicated_full_nonbonded": False,
+        "performance_warnings": [],
     }
 
 
-def _decompose_system_forces(system1: Any, system2: Any) -> dict[str, Any]:
+def _decompose_system_forces(
+    system1: Any,
+    system2: Any,
+    *,
+    fallback_to_legacy_for_unsupported_terms: bool = True,
+    report_energy_decomposition: bool = True,
+) -> dict[str, Any]:
     common_forces: list[Any] = []
     state1_forces: list[Any] = []
     state2_forces: list[Any] = []
@@ -822,9 +875,18 @@ def _decompose_system_forces(system1: Any, system2: Any) -> dict[str, Any]:
             name = type(force1).__name__ if type(force1) is type(force2) else f"{type(force1).__name__}/{type(force2).__name__}"
             unsupported.append(name)
             if isinstance(force1, openmm.NonbondedForce) or isinstance(force2, openmm.NonbondedForce):
-                warnings.append("NonbondedForce differs between states and was kept in full state-specific EVB evaluation; exact local decomposition for PME is not implemented.")
+                message = (
+                    "NonbondedForce differs between states and cannot be decomposed exactly in PME/local "
+                    "nonbonded form; full state-specific NonbondedForce objects are required unless fallback is disabled."
+                )
             else:
-                warnings.append(f"{name} differs between states and was kept in full state-specific EVB evaluation.")
+                message = f"{name} differs between states and cannot be decomposed exactly by the current implementation."
+            if not fallback_to_legacy_for_unsupported_terms:
+                raise ValueError(
+                    f"Exact EVB energy decomposition failed for {name}: {message} "
+                    "Set evb.energy_decomposition.fallback_to_legacy_for_unsupported_terms: true to keep the full force in e1/e2."
+                )
+            warnings.append(message)
             state1_forces.append(_clone_openmm_object(force1))
             state2_forces.append(_clone_openmm_object(force2))
             counts["n_state1_terms"] += _force_term_count(force1)
@@ -836,20 +898,39 @@ def _decompose_system_forces(system1: Any, system2: Any) -> dict[str, Any]:
         counts["n_common_terms"] += decomposed["n_common_terms"]
         counts["n_state1_terms"] += decomposed["n_state1_terms"]
         counts["n_state2_terms"] += decomposed["n_state2_terms"]
-    report = {
-        "enabled": True,
-        "mode": "exact",
-        "n_common_forces": len(common_forces),
-        "n_state1_forces": len(state1_forces),
-        "n_state2_forces": len(state2_forces),
-        "n_common_terms": counts["n_common_terms"],
-        "n_state1_terms": counts["n_state1_terms"],
-        "n_state2_terms": counts["n_state2_terms"],
-        "unsupported_forces": unsupported,
-        "warnings": sorted(set(warnings)),
-    }
-    return {"common_forces": common_forces, "state1_forces": state1_forces, "state2_forces": state2_forces, "report": report}
 
+    report = None
+    if report_energy_decomposition:
+        common_diag = _partition_diagnostics(common_forces, system1.getNumParticles())
+        state1_diag = _partition_diagnostics(state1_forces, system1.getNumParticles())
+        state2_diag = _partition_diagnostics(state2_forces, system2.getNumParticles())
+        duplicated_full_nonbonded = _has_full_nonbonded(state1_diag) and _has_full_nonbonded(state2_diag)
+        performance_warnings: list[str] = []
+        if duplicated_full_nonbonded:
+            performance_warnings.append(
+                "Exact decomposition still evaluates full state-specific NonbondedForce objects for both states; PME/nonbonded cost is duplicated and speedup should not be expected."
+            )
+        report_warnings = sorted(set(warnings + performance_warnings))
+        report = {
+            "enabled": True,
+            "mode": "exact",
+            "n_common_forces": len(common_forces),
+            "n_state1_forces": len(state1_forces),
+            "n_state2_forces": len(state2_forces),
+            "n_common_terms": counts["n_common_terms"],
+            "n_state1_terms": counts["n_state1_terms"],
+            "n_state2_terms": counts["n_state2_terms"],
+            "unsupported_forces": unsupported,
+            "warnings": report_warnings,
+            "partitions": {
+                "common": common_diag,
+                "state1": state1_diag,
+                "state2": state2_diag,
+            },
+            "duplicated_full_nonbonded": duplicated_full_nonbonded,
+            "performance_warnings": performance_warnings,
+        }
+    return {"common_forces": common_forces, "state1_forces": state1_forces, "state2_forces": state2_forces, "report": report}
 
 def _force_xml(force: Any) -> str:
     return openmm.XmlSerializer.serialize(force)
@@ -873,10 +954,58 @@ def _aggregate_energy_forces(forces: list[Any], prefix: str):
 
 
 def _force_term_count(force: Any) -> int:
+    if isinstance(force, openmm.NonbondedForce):
+        return int(force.getNumParticles() + force.getNumExceptions())
     for method in ("getNumBonds", "getNumAngles", "getNumTorsions"):
         if hasattr(force, method):
             return int(getattr(force, method)())
     return 1
+
+
+def _partition_diagnostics(forces: list[Any], system_particles: int) -> dict[str, Any]:
+    forces_by_class: dict[str, int] = {}
+    nonbonded_forces = []
+    for force in forces:
+        class_name = type(force).__name__
+        forces_by_class[class_name] = forces_by_class.get(class_name, 0) + 1
+        if isinstance(force, openmm.NonbondedForce):
+            full_system = force.getNumParticles() == system_particles
+            nonbonded_forces.append(
+                {
+                    "class": class_name,
+                    "force_group": int(force.getForceGroup()),
+                    "particles": int(force.getNumParticles()),
+                    "exceptions": int(force.getNumExceptions()),
+                    "nonbonded_method": _nonbonded_method_name(force),
+                    "uses_periodic_boundary_conditions": bool(force.usesPeriodicBoundaryConditions()),
+                    "full_system": bool(full_system),
+                    "reduced_or_correction_only": not bool(full_system),
+                    "performance_relevance": "dominant_full_system" if full_system else "reduced_or_correction_only",
+                }
+            )
+    return {
+        "n_forces": len(forces),
+        "forces_by_class": forces_by_class,
+        "has_nonbonded_force": bool(nonbonded_forces),
+        "nonbonded_forces": nonbonded_forces,
+    }
+
+
+def _has_full_nonbonded(partition: dict[str, Any]) -> bool:
+    return any(item.get("full_system") for item in partition.get("nonbonded_forces", []))
+
+
+def _nonbonded_method_name(force: Any) -> str:
+    method = force.getNonbondedMethod()
+    names = {
+        openmm.NonbondedForce.NoCutoff: "NoCutoff",
+        openmm.NonbondedForce.CutoffNonPeriodic: "CutoffNonPeriodic",
+        openmm.NonbondedForce.CutoffPeriodic: "CutoffPeriodic",
+        openmm.NonbondedForce.Ewald: "Ewald",
+        openmm.NonbondedForce.PME: "PME",
+        openmm.NonbondedForce.LJPME: "LJPME",
+    }
+    return names.get(method, str(method))
 
 
 def _copy_force_metadata(source: Any, target: Any) -> None:
@@ -898,7 +1027,7 @@ def _decompose_supported_force(force1: Any, force2: Any) -> dict[str, Any] | Non
 
 
 def _decompose_term_force(force1: Any, force2: Any, kind: str) -> dict[str, Any] | None:
-    if kind.startswith("custom") and not _custom_force_compatible(force1, force2):
+    if kind.startswith("custom") and not _custom_force_compatible(force1, force2, kind):
         return None
     common = _make_empty_term_force(force1, kind)
     state1 = _make_empty_term_force(force1, kind)
@@ -923,16 +1052,31 @@ def _decompose_term_force(force1: Any, force2: Any, kind: str) -> dict[str, Any]
     return {"common": common if _force_term_count(common) else None, "state1": state1 if _force_term_count(state1) else None, "state2": state2 if _force_term_count(state2) else None, "n_common_terms": n_common, "n_state1_terms": n_state1, "n_state2_terms": n_state2}
 
 
-def _custom_force_compatible(force1: Any, force2: Any) -> bool:
-    if force1.getEnergyFunction() != force2.getEnergyFunction() or force1.getNumGlobalParameters() != force2.getNumGlobalParameters() or force1.getNumPerBondParameters() != force2.getNumPerBondParameters():
+def _custom_force_compatible(force1: Any, force2: Any, kind: str) -> bool:
+    count_method, name_method, _add_method = _custom_parameter_methods(kind)
+    if (
+        force1.getEnergyFunction() != force2.getEnergyFunction()
+        or force1.getNumGlobalParameters() != force2.getNumGlobalParameters()
+        or getattr(force1, count_method)() != getattr(force2, count_method)()
+    ):
         return False
     for i in range(force1.getNumGlobalParameters()):
         if force1.getGlobalParameterName(i) != force2.getGlobalParameterName(i) or force1.getGlobalParameterDefaultValue(i) != force2.getGlobalParameterDefaultValue(i):
             return False
-    for i in range(force1.getNumPerBondParameters()):
-        if force1.getPerBondParameterName(i) != force2.getPerBondParameterName(i):
+    for i in range(getattr(force1, count_method)()):
+        if getattr(force1, name_method)(i) != getattr(force2, name_method)(i):
             return False
     return True
+
+
+def _custom_parameter_methods(kind: str) -> tuple[str, str, str]:
+    if kind == "custom_bond":
+        return "getNumPerBondParameters", "getPerBondParameterName", "addPerBondParameter"
+    if kind == "custom_angle":
+        return "getNumPerAngleParameters", "getPerAngleParameterName", "addPerAngleParameter"
+    if kind == "custom_torsion":
+        return "getNumPerTorsionParameters", "getPerTorsionParameterName", "addPerTorsionParameter"
+    raise ValueError(f"Unsupported custom force kind: {kind}")
 
 
 def _make_empty_term_force(source: Any, kind: str):
@@ -946,24 +1090,25 @@ def _make_empty_term_force(source: Any, kind: str):
         force = openmm.RBTorsionForce()
     elif kind == "custom_bond":
         force = openmm.CustomBondForce(source.getEnergyFunction())
-        _copy_custom_parameters(source, force)
+        _copy_custom_parameters(source, force, kind)
     elif kind == "custom_angle":
         force = openmm.CustomAngleForce(source.getEnergyFunction())
-        _copy_custom_parameters(source, force)
+        _copy_custom_parameters(source, force, kind)
     elif kind == "custom_torsion":
         force = openmm.CustomTorsionForce(source.getEnergyFunction())
-        _copy_custom_parameters(source, force)
+        _copy_custom_parameters(source, force, kind)
     else:
         raise ValueError(f"Unsupported term force kind: {kind}")
     _copy_force_metadata(source, force)
     return force
 
 
-def _copy_custom_parameters(source: Any, target: Any) -> None:
+def _copy_custom_parameters(source: Any, target: Any, kind: str) -> None:
+    count_method, name_method, add_method = _custom_parameter_methods(kind)
     for i in range(source.getNumGlobalParameters()):
         target.addGlobalParameter(source.getGlobalParameterName(i), source.getGlobalParameterDefaultValue(i))
-    for i in range(source.getNumPerBondParameters()):
-        target.addPerBondParameter(source.getPerBondParameterName(i))
+    for i in range(getattr(source, count_method)()):
+        getattr(target, add_method)(getattr(source, name_method)(i))
 
 
 def _term_signature(force: Any, kind: str, index: int) -> str:
