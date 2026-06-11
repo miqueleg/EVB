@@ -42,19 +42,21 @@ def q_spec(config, state1, state2):
 def make_system(config, mode, state1, state2, parameters):
     b = builder(config)
     if mode == "legacy_full_state":
-        return b.build_openmm_evb_system(state1, state2, parameters.delta_alpha, parameters.h12), None, None
+        return b.build_openmm_evb_system(state1, state2, parameters.delta_alpha, parameters.h12), None, None, {"q_region_build_time_s": None}
     if mode == "exact_decomposition":
-        return b.build_openmm_evb_system_decomposed(state1, state2, parameters.delta_alpha, parameters.h12), None, None
+        return b.build_openmm_evb_system_decomposed(state1, state2, parameters.delta_alpha, parameters.h12), None, None, {"q_region_build_time_s": None}
     spec = q_spec(config, state1, state2)
     table = None
     if mode == "q_region_table_metad":
         native = resolve_native_gap_bias_settings(config)
         table = NativeGapBiasTable1D(native.min_value or -10.0, native.max_value or 10.0, int(native.grid_width or 101))
+    t_build = time.perf_counter()
     q_system = QRegionSystemBuilder(spec).build(state1, state2, parameters.delta_alpha, parameters.h12, native_gap_bias_table=table)
-    return q_region_to_evb_openmm_system(q_system), q_system, table
+    build_time = time.perf_counter() - t_build
+    return q_region_to_evb_openmm_system(q_system), q_system, table, {"q_region_build_time_s": build_time, "time_to_derive_bonded_mapping_s": build_time}
 
 
-def run_repeat(config, mode: str, platform_name: str, steps: int, repeat: int) -> dict[str, Any]:
+def run_repeat(config, mode: str, platform_name: str, steps: int, repeat: int, diagnose_bonded_mapping: bool = False) -> dict[str, Any]:
     import openmm
     from openmm import unit
 
@@ -63,7 +65,7 @@ def run_repeat(config, mode: str, platform_name: str, steps: int, repeat: int) -
     parameters = load_or_calibrate_parameters(config)
     legacy = b.build_openmm_evb_system(state1, state2, parameters.delta_alpha, parameters.h12)
     t0 = time.perf_counter()
-    evb_system, q_system, table = make_system(config, mode, state1, state2, parameters)
+    evb_system, q_system, table, build_timing = make_system(config, mode, state1, state2, parameters)
     integrator = create_integrator(config.simulation.timestep_fs, config.simulation.temperature_k, config.simulation.friction_per_ps, config.simulation.integrator)
     platform = openmm.Platform.getPlatformByName(platform_name) if platform_name else None
     context = openmm.Context(evb_system.system, integrator, platform) if platform else openmm.Context(evb_system.system, integrator)
@@ -105,6 +107,19 @@ def run_repeat(config, mode: str, platform_name: str, steps: int, repeat: int) -
     wall = time.perf_counter() - t1
     report = (evb_system.energy_decomposition_report or {}).get("q_region_report", {})
     timing = table_metad.timing_report() if table_metad else {"bias_update_time_s": None, "average_time_per_bias_update_s": None, "number_of_bias_updates": 0}
+    bonded_mapping = report.get("common_force_summary", {}).get("bonded_mapping", {}) if report else {}
+    bonded_diagnostics = {}
+    if diagnose_bonded_mapping:
+        bonded_diagnostics = {
+            "n_common_bonded_terms": bonded_mapping.get("n_common_terms"),
+            "n_state1_only_bonded_terms": bonded_mapping.get("n_state1_only_terms"),
+            "n_state2_only_bonded_terms": bonded_mapping.get("n_state2_only_terms"),
+            "n_changed_parameter_bonded_terms": bonded_mapping.get("n_changed_parameter_terms"),
+            "n_ambiguous_bonded_terms": bonded_mapping.get("n_ambiguous_terms"),
+            "n_failed_outside_q_terms": len(report.get("changed_atoms_not_in_q_region", [])) if report else None,
+            "bonded_mapping_summary": bonded_mapping,
+            **build_timing,
+        }
     return {
         "mode": mode,
         "repeat": repeat,
@@ -126,6 +141,7 @@ def run_repeat(config, mode: str, platform_name: str, steps: int, repeat: int) -
         "use_app_metadynamics": False,
         "use_bias_variable": False,
         **timing,
+        **bonded_diagnostics,
     }
 
 
@@ -137,11 +153,16 @@ def main():
     parser.add_argument("--repeats", type=int, default=3)
     parser.add_argument("--modes", default="legacy_full_state,exact_decomposition,q_region_exact_direct,q_region_table_metad")
     parser.add_argument("--output", required=True)
+    parser.add_argument("--diagnose-bonded-mapping", action="store_true")
     args = parser.parse_args()
     config = load_config(args.config)
     config.simulation.platform = args.platform
     modes = [m.strip() for m in args.modes.split(",") if m.strip()]
-    records = [run_repeat(config, mode, args.platform, args.steps, repeat) for mode in modes for repeat in range(args.repeats)]
+    records = [
+        run_repeat(config, mode, args.platform, args.steps, repeat, diagnose_bonded_mapping=args.diagnose_bonded_mapping)
+        for mode in modes
+        for repeat in range(args.repeats)
+    ]
     summary = {"git_sha": git_sha(), "records": records}
     for mode in modes:
         rows = [r for r in records if r["mode"] == mode]

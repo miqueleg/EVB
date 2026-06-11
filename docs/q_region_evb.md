@@ -27,6 +27,23 @@ E_total = E_common + lower_EVB(e1_Q, e2_Q, delta_alpha, h12) + gap_bias(gap)
 | q_region local_pme_approx | no | no | experimental, validated only |
 | q_region table-metad | depends on q_region policy | depends on q_region policy | enhanced sampling |
 
+## Bonded Term Mapping for Reactive Topologies
+
+Real EVB endpoint topologies can have different Q-region bonded terms. A bond can exist in only one state, angles and torsions can appear or disappear when a bond is made or broken, and torsions can have multiple terms on the same atom tuple. Q-region mode now partitions bonded terms by canonical atom identity and parameter signatures instead of requiring equal list positions.
+
+Supported mappings:
+
+- `HarmonicBondForce`: unordered atom pairs.
+- `HarmonicAngleForce`: reversible angle keys, so `i-j-k` and `k-j-i` are equivalent.
+- `PeriodicTorsionForce` and `RBTorsionForce`: reversible torsion keys, with multiset matching for repeated terms on the same tuple.
+- `CustomBondForce`, `CustomAngleForce`, and `CustomTorsionForce`: supported when energy expressions and per-term parameter definitions match.
+
+Exact common terms are placed in `E_common`. Terms present only in state1 are placed in `e1_Q`; terms present only in state2 are placed in `e2_Q`. Terms with the same atom key but different parameters are removed from common and placed into the two state-specific residuals. This is the Q6-style behavior for redefined Q bonded terms: the ordinary topology no longer owns the reactive interaction, and each diabatic state evaluates its own Q term.
+
+State-only or changed-parameter bonded terms must involve only `q_atoms` or `correction_atoms`. If a changed bonded term touches atoms outside that set, exact Q-region mode fails with a report listing the offending force index, term index, atom key, and outside atoms. `derive-q-region` writes `q_region_bonded_mapping_report.json` so the Q atom proposal can be reviewed and extended.
+
+Constraints are audited separately. If constraints differ between states and involve Q or correction atoms, the default `q_atom_constraint_policy: fail` stops exact Q-region construction. Identical constraints are retained in the common system. Future policies may remove Q-involved constraints explicitly, but this branch does not silently alter them.
+
 ## Nonbonded Policies
 
 `exact_identical_nonbonded`: identical `NonbondedForce` objects are placed once in `E_common`.
@@ -81,4 +98,4 @@ For HG3.17, do not silently guess production Q atoms. `derive-q-region` writes a
 
 ## Limitations
 
-Exact Q-region PME decomposition is not implemented. Local PME correction is approximate and disabled by default. Unsupported changed bonded term topologies fail rather than falling back to duplicated full-state systems.
+Exact Q-region PME decomposition is not implemented. Local PME correction is approximate and disabled by default. Unsupported bonded custom-force incompatibilities, changed terms outside the Q/correction region, and differing Q constraints fail rather than falling back to duplicated full-state systems.

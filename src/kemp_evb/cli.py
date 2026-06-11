@@ -24,9 +24,11 @@ from .native_bias import (
 )
 from .q_region import (
     QRegionSystemBuilder,
+    compare_nonbonded_forces,
     derive_q_region_spec,
     q_region_spec_from_config,
     q_region_to_evb_openmm_system,
+    summarize_nonbonded_force,
     validate_q_region_against_legacy,
     write_q_region_config_fragment,
 )
@@ -1139,6 +1141,43 @@ def run_irc_analyze(irc_path: str, output_dir: str | None) -> None:
     print(json.dumps(payload, indent=2))
 
 
+def _q_region_bonded_mapping_payload(report: dict) -> dict:
+    return {
+        "changed_bonded_terms": report.get("changed_bonded_terms", []),
+        "common_force_summary": report.get("common_force_summary", {}),
+        "changed_atoms_not_in_q_region": report.get("changed_atoms_not_in_q_region", []),
+        "warnings": report.get("warnings", []),
+        "recommendations": report.get("recommendations", []),
+    }
+
+
+def _q_region_nonbonded_payload(report: dict, state1=None, state2=None) -> dict:
+    comparisons = []
+    if state1 is not None and state2 is not None:
+        try:
+            import openmm
+
+            for i in range(state1.system.getNumForces()):
+                f1 = state1.system.getForce(i)
+                f2 = state2.system.getForce(i)
+                if isinstance(f1, openmm.NonbondedForce) and isinstance(f2, openmm.NonbondedForce):
+                    item = compare_nonbonded_forces(f1, f2)
+                    item["force_index"] = i
+                    item["summary_state1"] = summarize_nonbonded_force(f1)
+                    item["summary_state2"] = summarize_nonbonded_force(f2)
+                    comparisons.append(item)
+        except Exception as exc:
+            comparisons.append({"error": str(exc)})
+    return {
+        "changed_nonbonded_atoms": report.get("changed_nonbonded_atoms", []),
+        "changed_exceptions": report.get("changed_exceptions", []),
+        "pme_status": report.get("pme_status"),
+        "exactness_status": report.get("exactness_status"),
+        "duplicated_full_nonbonded": report.get("duplicated_full_nonbonded"),
+        "nonbonded_comparisons": comparisons,
+    }
+
+
 def run_derive_q_region(config: EVBConfig, args: argparse.Namespace) -> None:
     output_dir = ensure_output_dir(args.output or Path(config.output_dir) / "q_region_derivation")
     builder = EVBSystemBuilder(
@@ -1155,7 +1194,10 @@ def run_derive_q_region(config: EVBConfig, args: argparse.Namespace) -> None:
         explicit_q_atoms=args.q_atom,
         include_reaction_atoms=args.include_reaction_atoms,
     )
-    write_json(output_dir / "q_region_derivation_report.json", asdict(report))
+    report_dict = asdict(report)
+    write_json(output_dir / "q_region_derivation_report.json", report_dict)
+    write_json(output_dir / "q_region_bonded_mapping_report.json", _q_region_bonded_mapping_payload(report_dict))
+    write_json(output_dir / "q_region_nonbonded_report.json", _q_region_nonbonded_payload(report_dict, state1, state2))
     write_q_region_config_fragment(spec, output_dir / "q_region_config_fragment.yaml")
     try:
         import yaml
@@ -1182,12 +1224,34 @@ def run_q_region_singlepoint(config: EVBConfig, output: str | None) -> None:
     )
     state1, state2 = builder.build_from_state_files(config.state1, config.state2)
     parameters = load_or_calibrate_parameters(config)
-    q_system = QRegionSystemBuilder(q_region_spec_from_config(config)).build(
-        state1,
-        state2,
-        delta_alpha=parameters.delta_alpha,
-        h12=parameters.h12,
-    )
+    spec = q_region_spec_from_config(config)
+    try:
+        q_system = QRegionSystemBuilder(spec).build(
+            state1,
+            state2,
+            delta_alpha=parameters.delta_alpha,
+            h12=parameters.h12,
+        )
+    except Exception as exc:
+        _derived_spec, derived_report = derive_q_region_spec(
+            config,
+            state1,
+            state2,
+            explicit_q_atoms=spec.q_atoms,
+            include_reaction_atoms=False,
+        )
+        report_dict = asdict(derived_report)
+        write_json(output_dir / "q_region_bonded_mapping_report.json", _q_region_bonded_mapping_payload(report_dict))
+        write_json(output_dir / "q_region_nonbonded_report.json", _q_region_nonbonded_payload(report_dict, state1, state2))
+        error_payload = {
+            "error": str(exc),
+            "q_region_report": report_dict,
+            "bonded_mapping_report": str(output_dir / "q_region_bonded_mapping_report.json"),
+            "nonbonded_report": str(output_dir / "q_region_nonbonded_report.json"),
+        }
+        write_json(output_dir / "q_region_singlepoint_error.json", error_payload)
+        print(json.dumps(error_payload, indent=2))
+        raise
     legacy = builder.build_openmm_evb_system(state1, state2, parameters.delta_alpha, parameters.h12)
     positions = select_start_positions(config, state1.positions_nm, state2.positions_nm)
     report = validate_q_region_against_legacy(
@@ -1199,6 +1263,8 @@ def run_q_region_singlepoint(config: EVBConfig, output: str | None) -> None:
     )
     payload = {"comparison": report, "q_region_report": q_system.q_region_report}
     write_json(output_dir / "q_region_singlepoint_comparison.json", payload)
+    write_json(output_dir / "q_region_bonded_mapping_report.json", _q_region_bonded_mapping_payload(q_system.q_region_report))
+    write_json(output_dir / "q_region_nonbonded_report.json", _q_region_nonbonded_payload(q_system.q_region_report, state1, state2))
     print(json.dumps(payload, indent=2))
 
 

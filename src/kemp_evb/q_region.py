@@ -57,6 +57,11 @@ class QRegionNonbondedPolicy:
 
 
 @dataclass(slots=True)
+class QRegionConstraintPolicy:
+    q_atom_constraint_policy: str = "fail"
+
+
+@dataclass(slots=True)
 class QRegionValidationSettings:
     compare_to_legacy: bool = True
     frames: list[str] = field(default_factory=list)
@@ -78,6 +83,7 @@ class QRegionSpec:
     common_force_placement: str = "outer_system"
     bonded: QRegionBondedPolicy = field(default_factory=QRegionBondedPolicy)
     nonbonded: QRegionNonbondedPolicy = field(default_factory=QRegionNonbondedPolicy)
+    constraints: QRegionConstraintPolicy = field(default_factory=QRegionConstraintPolicy)
     validation: QRegionValidationSettings = field(default_factory=QRegionValidationSettings)
 
 
@@ -169,6 +175,13 @@ class QRegionSystemBuilder:
         other = state2 if baseline is state1 else state1
         if baseline.system.getNumParticles() != other.system.getNumParticles():
             raise ValueError("Q-region states must have the same atom count.")
+        constraint_report = _audit_q_region_constraints(
+            state1.system,
+            state2.system,
+            self.q_atoms,
+            self.spec.correction_atoms,
+            self.spec.constraints.q_atom_constraint_policy,
+        )
         system = openmm.System()
         for index in range(baseline.system.getNumParticles()):
             system.addParticle(baseline.system.getParticleMass(index))
@@ -182,6 +195,7 @@ class QRegionSystemBuilder:
         state2_residuals: list[Any] = []
         warnings: list[str] = []
         changed_bonded_terms: list[dict[str, Any]] = []
+        bonded_mapping_summaries: list[dict[str, Any]] = []
         changed_nb_atoms: set[int] = set()
         changed_exceptions: list[tuple[int, int]] = []
         pme_status = "none"
@@ -210,7 +224,7 @@ class QRegionSystemBuilder:
                 q_nb_count += result["q_nonbonded_count"]
                 continue
             if _is_supported_bonded_force(force1):
-                common, s1, s2, changed = self._split_bonded_force(force1, force2, force_index)
+                common, s1, s2, changed, summary = self._split_bonded_force(force1, force2, force_index)
                 if common is not None:
                     common_forces.append(common)
                 if s1 is not None:
@@ -218,6 +232,7 @@ class QRegionSystemBuilder:
                 if s2 is not None:
                     state2_residuals.append(s2)
                 changed_bonded_terms.extend(changed)
+                bonded_mapping_summaries.append(summary)
                 continue
             if _force_xml(force1) == _force_xml(force2):
                 common_forces.append(_clone_openmm_object(force1))
@@ -226,7 +241,8 @@ class QRegionSystemBuilder:
 
         changed_atoms = set(changed_nb_atoms)
         for term in changed_bonded_terms:
-            changed_atoms.update(term.get("atoms", []))
+            if term.get("mapping") != "common":
+                changed_atoms.update(term.get("atoms", []))
         changed_atoms_not_in_q = sorted(changed_atoms.difference(self.q_atoms).difference(self.spec.correction_atoms))
         if changed_atoms_not_in_q and self.spec.changed_atom_policy == "require_subset":
             raise ValueError(
@@ -265,6 +281,8 @@ class QRegionSystemBuilder:
                 "n_forces": len(common_forces),
                 "nonbonded_force_count": common_nb_count,
                 "full_duplicated_nonbonded": False,
+                "bonded_mapping": _summarize_bonded_mappings(bonded_mapping_summaries),
+                "constraints": constraint_report,
             },
             q_state_force_summary={
                 "state1_force_count": len(state1_residuals),
@@ -299,27 +317,21 @@ class QRegionSystemBuilder:
         )
 
     def _split_bonded_force(self, force1: Any, force2: Any, force_index: int):
-        kind = _bonded_kind(force1)
-        common = _empty_like(force1, kind)
-        s1 = _empty_like(force1, kind)
-        s2 = _empty_like(force2, kind)
-        changed: list[dict[str, Any]] = []
-        count = _term_count(force1, kind)
-        if count != _term_count(force2, kind):
-            raise ValueError(f"Q-region changed {type(force1).__name__} term count differs; this is not supported yet.")
-        for i in range(count):
-            term1 = _get_term(force1, kind, i)
-            term2 = _get_term(force2, kind, i)
-            if _term_equal(term1, term2):
-                _add_term(common, kind, term1)
-                continue
-            atoms = list(term1[0])
-            if not any(atom in self.q_atoms for atom in atoms):
-                raise ValueError(f"Changed bonded term outside Q region at force {force_index}, term {i}: {atoms}")
-            _add_term(s1, kind, term1)
-            _add_term(s2, kind, term2)
-            changed.append({"force_index": force_index, "term_index": i, "kind": kind, "atoms": atoms})
-        return _nonempty(common, kind), _nonempty(s1, kind), _nonempty(s2, kind), changed
+        result = partition_bonded_terms(
+            force1,
+            force2,
+            _bonded_kind(force1),
+            self.q_atoms,
+            self.spec.correction_atoms,
+            force_index=force_index,
+        )
+        return (
+            result["common_force"],
+            result["state1_residual_force"],
+            result["state2_residual_force"],
+            result["changed_terms_report"],
+            result["summary"],
+        )
 
     def _handle_nonbonded(self, force1: Any, force2: Any, force_index: int) -> dict[str, Any]:
         del force_index
@@ -385,6 +397,64 @@ class QRegionSystemBuilder:
         }
 
 
+
+def _constraint_signature(system: Any, index: int) -> tuple[tuple[int, int], float]:
+    a, b, distance = system.getConstraintParameters(index)
+    return (tuple(sorted((int(a), int(b)))), float(distance.value_in_unit(unit.nanometer)))
+
+
+def _constraint_records(system: Any) -> dict[tuple[int, int], float]:
+    records = {}
+    for index in range(system.getNumConstraints()):
+        atoms, distance = _constraint_signature(system, index)
+        records[atoms] = distance
+    return records
+
+
+def _audit_q_region_constraints(
+    system1: Any,
+    system2: Any,
+    q_atoms: list[int],
+    correction_atoms: list[int],
+    q_atom_constraint_policy: str,
+) -> dict[str, Any]:
+    if q_atom_constraint_policy != "fail":
+        raise ValueError(f"Q-region q_atom_constraint_policy={q_atom_constraint_policy!r} is not implemented; use 'fail'.")
+    q_set = set(int(atom) for atom in q_atoms)
+    allowed = q_set | set(int(atom) for atom in (correction_atoms or []))
+    c1 = _constraint_records(system1)
+    c2 = _constraint_records(system2)
+    keys = sorted(set(c1) | set(c2))
+    q_constraints = [list(key) for key in keys if set(key) & allowed]
+    differing = []
+    for key in keys:
+        d1 = c1.get(key)
+        d2 = c2.get(key)
+        if d1 is None or d2 is None or not np.isclose(d1, d2, atol=1.0e-12, rtol=0.0):
+            differing.append({
+                "atoms": list(key),
+                "distance_state1_nm": d1,
+                "distance_state2_nm": d2,
+                "involves_q_or_correction_atom": bool(set(key) & allowed),
+            })
+    q_differing = [row for row in differing if row["involves_q_or_correction_atom"]]
+    if q_differing and q_atom_constraint_policy == "fail":
+        raise ValueError(
+            "Q-region differing constraints involving Q atoms are not supported with "
+            "q_atom_constraint_policy=fail. Remove or harmonize Q constraints before exact Q-region validation."
+        )
+    if differing and not q_differing:
+        raise ValueError("Q-region differing constraints outside Q region are not supported in exact mode.")
+    return {
+        "q_atom_constraint_policy": q_atom_constraint_policy,
+        "n_constraints_state1": system1.getNumConstraints(),
+        "n_constraints_state2": system2.getNumConstraints(),
+        "constraints_involving_q_or_correction_atoms": q_constraints,
+        "differing_constraints": differing,
+        "constraints_retained": True,
+        "constraints_removed": False,
+    }
+
 def q_region_spec_from_config(config: Any) -> QRegionSpec:
     payload = dict(getattr(config, "q_region", {}) or {})
     q_atoms = list(payload.get("q_atoms") or [])
@@ -394,6 +464,7 @@ def q_region_spec_from_config(config: Any) -> QRegionSpec:
             q_atoms.extend([config.reaction.atoms.donor, config.reaction.atoms.proton, config.reaction.atoms.acceptor])
     bonded_payload = dict(payload.get("bonded", {}) or {})
     nonbonded_payload = dict(payload.get("nonbonded", {}) or {})
+    constraints_payload = dict(payload.get("constraints", {}) or {})
     validation_payload = dict(payload.get("validation", {}) or {})
     return QRegionSpec(
         q_atoms=sorted(set(int(atom) for atom in q_atoms)),
@@ -404,9 +475,204 @@ def q_region_spec_from_config(config: Any) -> QRegionSpec:
         common_force_placement=payload.get("common_force_placement", "outer_system"),
         bonded=QRegionBondedPolicy(**bonded_payload),
         nonbonded=QRegionNonbondedPolicy(**nonbonded_payload),
+        constraints=QRegionConstraintPolicy(**constraints_payload),
         validation=QRegionValidationSettings(**validation_payload),
     )
 
+
+
+def _summarize_bonded_mappings(summaries: list[dict[str, Any]]) -> dict[str, Any]:
+    totals = {
+        "n_force_classes": len(summaries),
+        "n_terms_state1": 0,
+        "n_terms_state2": 0,
+        "n_common_terms": 0,
+        "n_state1_only_terms": 0,
+        "n_state2_only_terms": 0,
+        "n_changed_parameter_terms": 0,
+        "n_ambiguous_terms": 0,
+        "by_force": summaries,
+    }
+    for summary in summaries:
+        for key in (
+            "n_terms_state1",
+            "n_terms_state2",
+            "n_common_terms",
+            "n_state1_only_terms",
+            "n_state2_only_terms",
+            "n_changed_parameter_terms",
+            "n_ambiguous_terms",
+        ):
+            totals[key] += int(summary.get(key, 0))
+    return totals
+
+
+def partition_bonded_terms(
+    force1: Any,
+    force2: Any,
+    kind: str,
+    q_atoms: list[int],
+    correction_atoms: list[int] | None = None,
+    *,
+    force_index: int | None = None,
+) -> dict[str, Any]:
+    _validate_custom_force_compatibility(force1, force2, kind)
+    q_set = set(int(atom) for atom in q_atoms)
+    allowed = q_set | set(int(atom) for atom in (correction_atoms or []))
+    common = _empty_like(force1, kind)
+    s1 = _empty_like(force1, kind)
+    s2 = _empty_like(force2, kind)
+    terms1 = [_term_record(force1, kind, index) for index in range(_term_count(force1, kind))]
+    terms2 = [_term_record(force2, kind, index) for index in range(_term_count(force2, kind))]
+    used1: set[int] = set()
+    used2: set[int] = set()
+    changed: list[dict[str, Any]] = []
+    unmatched: list[dict[str, Any]] = []
+    warnings: list[str] = []
+
+    by_full2: dict[tuple[Any, ...], list[int]] = {}
+    for index, record in enumerate(terms2):
+        by_full2.setdefault(record["full_signature"], []).append(index)
+    for i, record1 in enumerate(terms1):
+        candidates = by_full2.get(record1["full_signature"], [])
+        match = next((j for j in candidates if j not in used2), None)
+        if match is None:
+            continue
+        _add_term(common, kind, record1["term"])
+        used1.add(i)
+        used2.add(match)
+        changed.append(_mapping_row("common", kind, force_index, record1, terms2[match]))
+
+    remaining1 = [i for i in range(len(terms1)) if i not in used1]
+    remaining2 = [i for i in range(len(terms2)) if i not in used2]
+    by_atom2: dict[tuple[int, ...], list[int]] = {}
+    for j in remaining2:
+        by_atom2.setdefault(terms2[j]["atom_key"], []).append(j)
+
+    for i in remaining1:
+        if i in used1:
+            continue
+        record1 = terms1[i]
+        atom_candidates = [j for j in by_atom2.get(record1["atom_key"], []) if j not in used2]
+        if atom_candidates:
+            # Remaining terms with the same atom key represent changed parameters or
+            # changed multiplicity. Route one pair as changed-parameter residuals;
+            # extras are handled by state-only logic below.
+            j = atom_candidates[0]
+            record2 = terms2[j]
+            _require_q_bonded_atoms(record1, allowed, "changed-parameter bonded term", force_index)
+            _require_q_bonded_atoms(record2, allowed, "changed-parameter bonded term", force_index)
+            _add_term(s1, kind, record1["term"])
+            _add_term(s2, kind, record2["term"])
+            used1.add(i)
+            used2.add(j)
+            changed.append(_mapping_row("changed_parameter", kind, force_index, record1, record2))
+            continue
+        _require_q_bonded_atoms(record1, allowed, "state1-only bonded term", force_index)
+        _add_term(s1, kind, record1["term"])
+        used1.add(i)
+        row = _mapping_row("state1_only", kind, force_index, record1, None)
+        changed.append(row)
+        unmatched.append(row)
+
+    for j in remaining2:
+        if j in used2:
+            continue
+        record2 = terms2[j]
+        _require_q_bonded_atoms(record2, allowed, "state2-only bonded term", force_index)
+        _add_term(s2, kind, record2["term"])
+        used2.add(j)
+        row = _mapping_row("state2_only", kind, force_index, None, record2)
+        changed.append(row)
+        unmatched.append(row)
+
+    summary = {
+        "kind": kind,
+        "force_index": force_index,
+        "n_terms_state1": len(terms1),
+        "n_terms_state2": len(terms2),
+        "n_common_terms": sum(1 for row in changed if row["mapping"] == "common"),
+        "n_state1_only_terms": sum(1 for row in changed if row["mapping"] == "state1_only"),
+        "n_state2_only_terms": sum(1 for row in changed if row["mapping"] == "state2_only"),
+        "n_changed_parameter_terms": sum(1 for row in changed if row["mapping"] == "changed_parameter"),
+        "n_ambiguous_terms": 0,
+    }
+    return {
+        "common_force": _nonempty(common, kind),
+        "state1_residual_force": _nonempty(s1, kind),
+        "state2_residual_force": _nonempty(s2, kind),
+        "changed_terms_report": changed,
+        "unmatched_terms_report": unmatched,
+        "warnings": warnings,
+        "summary": summary,
+    }
+
+
+def _validate_custom_force_compatibility(force1: Any, force2: Any, kind: str) -> None:
+    if not kind.startswith("custom"):
+        return
+    if force1.getEnergyFunction() != force2.getEnergyFunction():
+        raise ValueError(f"Q-region custom bonded force expressions differ for {kind}.")
+    label = {"custom_bond": "Bond", "custom_angle": "Angle", "custom_torsion": "Torsion"}[kind]
+    count_method = f"getNumPer{label}Parameters"
+    name_method = f"getPer{label}ParameterName"
+    if getattr(force1, count_method)() != getattr(force2, count_method)():
+        raise ValueError(f"Q-region custom bonded parameter counts differ for {kind}.")
+    for i in range(getattr(force1, count_method)()):
+        if getattr(force1, name_method)(i) != getattr(force2, name_method)(i):
+            raise ValueError(f"Q-region custom bonded parameter names differ for {kind}.")
+
+
+def _term_record(force: Any, kind: str, index: int) -> dict[str, Any]:
+    term = _get_term(force, kind, index)
+    atom_key = _canonical_atom_key(term[0], kind)
+    parameter_signature = _param_values(term[1])
+    return {
+        "index": index,
+        "term": term,
+        "atoms": tuple(int(atom) for atom in term[0]),
+        "atom_key": atom_key,
+        "parameter_signature": parameter_signature,
+        "full_signature": (kind, atom_key, parameter_signature),
+    }
+
+
+def _canonical_atom_key(atoms: tuple[int, ...], kind: str) -> tuple[int, ...]:
+    atoms = tuple(int(atom) for atom in atoms)
+    if kind in {"harmonic_bond", "custom_bond"}:
+        return tuple(sorted(atoms))
+    if kind in {"harmonic_angle", "custom_angle"}:
+        rev = (atoms[2], atoms[1], atoms[0])
+        return min(atoms, rev)
+    if kind in {"periodic_torsion", "rb_torsion", "custom_torsion"}:
+        rev = tuple(reversed(atoms))
+        return min(atoms, rev)
+    return atoms
+
+
+def _require_q_bonded_atoms(record: dict[str, Any], allowed_atoms: set[int], label: str, force_index: int | None) -> None:
+    atoms = set(record["atoms"])
+    if not atoms.issubset(allowed_atoms):
+        outside = sorted(atoms.difference(allowed_atoms))
+        raise ValueError(
+            f"Q-region {label} outside Q region at force {force_index}, term {record['index']}: "
+            f"atoms={list(record['atoms'])}, outside_q_atoms={outside}. Add them to q_atoms or correction_atoms."
+        )
+
+
+def _mapping_row(mapping: str, kind: str, force_index: int | None, record1: dict[str, Any] | None, record2: dict[str, Any] | None) -> dict[str, Any]:
+    record = record1 or record2
+    return {
+        "mapping": mapping,
+        "kind": kind,
+        "force_index": force_index,
+        "term_index_state1": None if record1 is None else record1["index"],
+        "term_index_state2": None if record2 is None else record2["index"],
+        "atoms": [] if record is None else list(record["atoms"]),
+        "atom_key": [] if record is None else list(record["atom_key"]),
+        "parameter_signature_state1": None if record1 is None else list(record1["parameter_signature"]),
+        "parameter_signature_state2": None if record2 is None else list(record2["parameter_signature"]),
+    }
 
 def extract_nonbonded_parameters(force: Any) -> dict[str, Any]:
     particles = []
@@ -510,16 +776,20 @@ def derive_q_region_spec(config: Any, state1: LoadedAmberState, state2: LoadedAm
             changed_exceptions.extend(find_changed_exceptions(f1, f2))
         elif _is_supported_bonded_force(f1) and type(f1) is type(f2):
             kind = _bonded_kind(f1)
-            n1 = _term_count(f1, kind)
-            n2 = _term_count(f2, kind)
-            for j in range(min(n1, n2)):
-                t1 = _get_term(f1, kind, j)
-                t2 = _get_term(f2, kind, j)
-                if not _term_equal(t1, t2):
-                    changed_terms.append({"force_index": i, "term_index": j, "kind": kind, "atoms": list(t1[0])})
-                    q_atoms.update(t1[0])
-            if n1 != n2:
-                changed_terms.append({"force_index": i, "term_index": None, "kind": kind, "atoms": [], "term_count_state1": n1, "term_count_state2": n2})
+            # Derivation is intentionally permissive: start with all currently
+            # known Q atoms, then add atoms from any mapped state-specific terms.
+            result = partition_bonded_terms(
+                f1,
+                f2,
+                kind,
+                list(range(state1.system.getNumParticles())),
+                list(range(state1.system.getNumParticles())),
+                force_index=i,
+            )
+            for row in result["changed_terms_report"]:
+                if row.get("mapping") != "common":
+                    changed_terms.append(row)
+                    q_atoms.update(row.get("atoms", []))
     q_atoms.update(changed_nb)
     spec = QRegionSpec(q_atoms=sorted(q_atoms), correction_atoms=sorted(q_atoms))
     report = QRegionDerivationReport(
