@@ -22,6 +22,14 @@ from .native_bias import (
     NativeGapBiasTable1D,
     NativeWellTemperedGapMetadynamics1D,
 )
+from .q_region import (
+    QRegionSystemBuilder,
+    derive_q_region_spec,
+    q_region_spec_from_config,
+    q_region_to_evb_openmm_system,
+    validate_q_region_against_legacy,
+    write_q_region_config_fragment,
+)
 from .irc import read_irc_xyz, write_irc_outputs
 from .irc_setup import setup_from_irc
 from .hg317_prep import prepare_hg317_system
@@ -83,6 +91,9 @@ def main() -> None:
             "evb-opes",
             "evb-gap-metad",
             "evb-gap-table-metad",
+            "derive-q-region",
+            "q-region-singlepoint",
+            "q-region-gap-table-metad",
             "evb-gap-opes",
             "make-template",
         ],
@@ -109,6 +120,8 @@ def main() -> None:
     parser.add_argument("--h12-values", help="Comma-separated H12 values in kJ/mol for scan-coupling")
     parser.add_argument("--qm-guide", help="Optional QM geometry guide JSON for 2D reaction-coordinate plotting")
     parser.add_argument("--kind", choices=["solution", "enzyme", "toy"], help="Template kind for make-template")
+    parser.add_argument("--q-atom", action="append", type=int, default=[], help="0-based OpenMM atom index for Q-region derivation")
+    parser.add_argument("--include-reaction-atoms", action="store_true", help="Include reaction/substrate atoms in derived Q-region proposal")
     args = parser.parse_args()
 
     if args.command == "make-template":
@@ -180,6 +193,13 @@ def main() -> None:
     elif args.command == "evb-gap-metad":
         run_gap_metadynamics(config)
     elif args.command == "evb-gap-table-metad":
+        run_gap_table_metadynamics(config)
+    elif args.command == "derive-q-region":
+        run_derive_q_region(config, args)
+    elif args.command == "q-region-singlepoint":
+        run_q_region_singlepoint(config, args.output)
+    elif args.command == "q-region-gap-table-metad":
+        config.evb_representation = "q_region"
         run_gap_table_metadynamics(config)
     elif args.command == "evb-gap-opes":
         raise ValueError(
@@ -657,22 +677,32 @@ def run_gap_table_metadynamics(config: EVBConfig) -> None:
     )
     state1, state2 = builder.build_from_state_files(config.state1, config.state2)
     parameters = load_or_calibrate_parameters(config)
-    common_force_placement = "outer_system" if config.energy_decomposition.enabled else "cv_compatible"
-    if config.energy_decomposition.enabled:
-        common_force_placement = config.energy_decomposition.common_force_placement or "outer_system"
-    evb_system = builder.build_openmm_evb_system(
-        state1,
-        state2,
-        delta_alpha=parameters.delta_alpha,
-        h12=parameters.h12,
-        energy_decomposition=config.energy_decomposition.enabled,
-        energy_decomposition_mode=config.energy_decomposition.mode,
-        fallback_to_legacy_for_unsupported_terms=config.energy_decomposition.fallback_to_legacy_for_unsupported_terms,
-        report_energy_decomposition=config.energy_decomposition.report,
-        common_force_placement=common_force_placement,
-        native_gap_bias_table=table,
-        native_gap_wall_force_constant=native.wall_force_constant_kj_mol2,
-    )
+    if config.evb_representation == "q_region":
+        q_system = QRegionSystemBuilder(q_region_spec_from_config(config)).build(
+            state1,
+            state2,
+            delta_alpha=parameters.delta_alpha,
+            h12=parameters.h12,
+            native_gap_bias_table=table,
+        )
+        evb_system = q_region_to_evb_openmm_system(q_system)
+    else:
+        common_force_placement = "outer_system" if config.energy_decomposition.enabled else "cv_compatible"
+        if config.energy_decomposition.enabled:
+            common_force_placement = config.energy_decomposition.common_force_placement or "outer_system"
+        evb_system = builder.build_openmm_evb_system(
+            state1,
+            state2,
+            delta_alpha=parameters.delta_alpha,
+            h12=parameters.h12,
+            energy_decomposition=config.energy_decomposition.enabled,
+            energy_decomposition_mode=config.energy_decomposition.mode,
+            fallback_to_legacy_for_unsupported_terms=config.energy_decomposition.fallback_to_legacy_for_unsupported_terms,
+            report_energy_decomposition=config.energy_decomposition.report,
+            common_force_placement=common_force_placement,
+            native_gap_bias_table=table,
+            native_gap_wall_force_constant=native.wall_force_constant_kj_mol2,
+        )
     integrator = create_integrator(
         timestep_fs=config.simulation.timestep_fs,
         temperature_k=config.simulation.temperature_k,
@@ -751,6 +781,7 @@ def run_gap_table_metadynamics(config: EVBConfig) -> None:
         "use_bias_variable": False,
         "energy_decomposition": evb_system.energy_decomposition_report,
         "bias_report": evb_system.bias_report,
+        "q_region_report": (evb_system.energy_decomposition_report or {}).get("q_region_report"),
         **metad.timing_report(),
     }
     write_json(output_dir / "gap_table_metad_setup.json", setup)
@@ -1108,6 +1139,69 @@ def run_irc_analyze(irc_path: str, output_dir: str | None) -> None:
     print(json.dumps(payload, indent=2))
 
 
+def run_derive_q_region(config: EVBConfig, args: argparse.Namespace) -> None:
+    output_dir = ensure_output_dir(args.output or Path(config.output_dir) / "q_region_derivation")
+    builder = EVBSystemBuilder(
+        AmberSystemLoader(
+            nonbonded_method=config.simulation.nonbonded_method,
+            constraints=config.simulation.constraints,
+        )
+    )
+    state1, state2 = builder.build_from_state_files(config.state1, config.state2)
+    spec, report = derive_q_region_spec(
+        config,
+        state1,
+        state2,
+        explicit_q_atoms=args.q_atom,
+        include_reaction_atoms=args.include_reaction_atoms,
+    )
+    write_json(output_dir / "q_region_derivation_report.json", asdict(report))
+    write_q_region_config_fragment(spec, output_dir / "q_region_config_fragment.yaml")
+    try:
+        import yaml
+
+        with Path(args.config).open("r", encoding="utf-8") as handle:
+            payload = yaml.safe_load(handle)
+        payload.setdefault("evb", {})["representation"] = "q_region"
+        payload["evb"]["q_region"] = asdict(spec)
+        full_config_path = output_dir / "hg317_q_region_config.yaml"
+        with full_config_path.open("w", encoding="utf-8") as handle:
+            yaml.safe_dump(payload, handle, sort_keys=False)
+    except Exception:
+        full_config_path = output_dir / "q_region_config_fragment.yaml"
+    print(json.dumps({"q_atoms": spec.q_atoms, "report": str(output_dir / "q_region_derivation_report.json"), "config": str(full_config_path)}, indent=2))
+
+
+def run_q_region_singlepoint(config: EVBConfig, output: str | None) -> None:
+    output_dir = ensure_output_dir(output or Path(config.output_dir) / "q_region_validation")
+    builder = EVBSystemBuilder(
+        AmberSystemLoader(
+            nonbonded_method=config.simulation.nonbonded_method,
+            constraints=config.simulation.constraints,
+        )
+    )
+    state1, state2 = builder.build_from_state_files(config.state1, config.state2)
+    parameters = load_or_calibrate_parameters(config)
+    q_system = QRegionSystemBuilder(q_region_spec_from_config(config)).build(
+        state1,
+        state2,
+        delta_alpha=parameters.delta_alpha,
+        h12=parameters.h12,
+    )
+    legacy = builder.build_openmm_evb_system(state1, state2, parameters.delta_alpha, parameters.h12)
+    positions = select_start_positions(config, state1.positions_nm, state2.positions_nm)
+    report = validate_q_region_against_legacy(
+        q_system,
+        legacy,
+        positions,
+        parameters,
+        platform_name=config.simulation.platform or "CPU",
+    )
+    payload = {"comparison": report, "q_region_report": q_system.q_region_report}
+    write_json(output_dir / "q_region_singlepoint_comparison.json", payload)
+    print(json.dumps(payload, indent=2))
+
+
 def build_simulation(config: EVBConfig, mode: str) -> EVBSimulation:
     builder = EVBSystemBuilder(
         AmberSystemLoader(
@@ -1264,3 +1358,7 @@ def _solution_template() -> str:
 
 def _enzyme_template() -> str:
     return _toy_template().replace("toy-evb", "enzyme-evb").replace("outputs/toy", "outputs/enzyme")
+
+
+if __name__ == "__main__":
+    main()

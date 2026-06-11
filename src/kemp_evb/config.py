@@ -425,6 +425,8 @@ class EVBConfig:
     calibration: CalibrationData | None = None
     evb_parameters: EVBParameterConfig = field(default_factory=EVBParameterConfig)
     energy_decomposition: EnergyDecompositionSettings = field(default_factory=EnergyDecompositionSettings)
+    evb_representation: str = "full_state"
+    q_region: dict[str, Any] = field(default_factory=dict)
     cv: CVDefinition | None = None
     simulation: SimulationSettings = field(default_factory=SimulationSettings)
     output_dir: str = "outputs"
@@ -593,6 +595,8 @@ def _from_legacy_mapping(data: dict[str, Any]) -> EVBConfig:
         calibration=calibration,
         evb_parameters=evb_parameters,
         energy_decomposition=EnergyDecompositionSettings(),
+        evb_representation=data.get("evb", {}).get("representation", "full_state"),
+        q_region=dict(data.get("evb", {}).get("q_region", {})),
         cv=cv,
         simulation=simulation,
         output_dir=project.output_dir,
@@ -636,6 +640,8 @@ def _from_modern_mapping(data: dict[str, Any]) -> EVBConfig:
     h12 = parameter_block.get("h12_kj_mol", coupling_payload.get("h12_kj_mol"))
     evb_parameters = EVBParameterConfig(delta_alpha=delta_alpha, h12=h12)
     energy_decomposition = EnergyDecompositionSettings(**evb_payload.get("energy_decomposition", {}))
+    evb_representation = evb_payload.get("representation", "q_region" if evb_payload.get("q_region", {}).get("enabled") else "full_state")
+    q_region = dict(evb_payload.get("q_region", {}))
 
     sampling_payload = data.get("sampling", {})
     integrator_payload = sampling_payload.get("integrator", {})
@@ -719,6 +725,8 @@ def _from_modern_mapping(data: dict[str, Any]) -> EVBConfig:
         calibration=None,
         evb_parameters=evb_parameters,
         energy_decomposition=energy_decomposition,
+        evb_representation=evb_representation,
+        q_region=q_region,
         cv=cv,
         simulation=simulation,
         output_dir=project.output_dir,
@@ -767,6 +775,12 @@ def validate_config(config: EVBConfig) -> list[str]:
         errors.append("evb.energy_decomposition.mode must be 'exact' or 'legacy'.")
     if config.energy_decomposition.common_force_placement not in {"outer_system", "cv_compatible"}:
         errors.append("evb.energy_decomposition.common_force_placement must be 'outer_system' or 'cv_compatible'.")
+    if config.evb_representation not in {"full_state", "q_region"}:
+        errors.append("evb.representation must be 'full_state' or 'q_region'.")
+    if config.evb_representation == "q_region":
+        q_atoms = config.q_region.get("q_atoms") or []
+        if not q_atoms and not config.q_region.get("q_atoms_from_reaction", False):
+            errors.append("q_region representation requires evb.q_region.q_atoms or q_atoms_from_reaction.")
     if config.sampling.mode not in {"mapping", "gap_umbrella", "proton_transfer_umbrella", "gap_metadynamics", "gap_table_metadynamics"}:
         errors.append(f"Unsupported sampling.mode {config.sampling.mode!r}.")
     if config.sampling.mode == "mapping" and not config.sampling.windows.mapping.lambda_values:
