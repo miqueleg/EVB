@@ -16,6 +16,7 @@ from ..openmm_backend import (
     EVBSystemBuilder,
     MappedOpenMMSystem,
     build_absolute_positional_restraint_force,
+    evb_diabatic_energies,
     load_positions_file,
     write_pdb,
 )
@@ -395,6 +396,7 @@ class GapUmbrellaWindowRunner:
             substrate_com_restraint=self._resolve_substrate_com_restraint(),
             far_field_restraint=_resolve_far_field_restraint(self.config, self.state1.positions_nm),
             unconstrained_atoms=_reactive_constraint_exclusions(self.config),
+            energy_decomposition=self.config.energy_decomposition.enabled,
         )
         integrator = create_integrator(
             timestep_fs=self.config.sampling.integrator.timestep_fs,
@@ -554,9 +556,7 @@ class GapUmbrellaWindowRunner:
     def _snapshot(self, context, umbrella_system: EVBOpenMMSystem, frame_index: int, step_count: int) -> FrameObservables:
         state = context.getState(getEnergy=True, getPositions=True)
         positions_nm = np.asarray(state.getPositions(asNumpy=True).value_in_unit(unit.nanometer))
-        values = umbrella_system.evb_force.getCollectiveVariableValues(context)
-        energy1 = float(values[0])
-        energy2 = float(values[1])
+        energy1, energy2 = evb_diabatic_energies(umbrella_system, context)
         evb_energy, weight1, weight2 = EVBHamiltonian(self.parameters).lower_eigenvalue(energy1, energy2)
         result = EVBResult(
             energy1=energy1,
@@ -799,8 +799,7 @@ class ProtonTransferUmbrellaWindowRunner:
     def _snapshot(self, context, umbrella_system: EVBOpenMMSystem, frame_index: int, step_count: int) -> FrameObservables:
         state = context.getState(getEnergy=True, getPositions=True)
         positions_nm = np.asarray(state.getPositions(asNumpy=True).value_in_unit(unit.nanometer))
-        values = umbrella_system.evb_force.getCollectiveVariableValues(context)
-        energy1 = float(values[0]); energy2 = float(values[1])
+        energy1, energy2 = evb_diabatic_energies(umbrella_system, context)
         evb_energy, weight1, weight2 = EVBHamiltonian(self.parameters).lower_eigenvalue(energy1, energy2)
         result = EVBResult(
             energy1=energy1, energy2=energy2, e2_shifted=energy2 + self.parameters.delta_alpha,

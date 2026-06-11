@@ -48,6 +48,21 @@ If a differing force cannot be decomposed exactly, it remains in the state-speci
 
 `NonbondedForce` is only decomposed when the full force is identical between states. Differing `NonbondedForce` objects, including PME systems, are kept as full state-specific EVB contributions. No local PME approximation is used.
 
+## Automatic Adiabatic Setup
+
+For workflows that already have state1/state2 AMBER inputs plus an IRC, the helper command can create EVB-ready OpenMM bundles and then run IRC-based calibration/setup in one step:
+
+```bash
+evb prepare-adiabatic-system \
+  --config examples/hg317_irc_mapping_barrier_calibrated.yaml \
+  --output prep/hg317_full_irc/evb_ready \
+  --write-window-config
+```
+
+The command runs the same conservative preparation used by `prepare-evb-inputs`, writes all derived files, and then calls `setup-from-irc`. If an alpha-carbon mapping is missing and the config has a 5RGE-style PDB plus fixed IRC atoms, it derives the mapping and records it in the configured mapping path.
+
+This does not replace full system parameterization from raw structures. For HG3.17/5RGE, `evb prepare-hg317-system --config examples/hg317_system_prep.yaml` scaffolds that earlier stage. It requires AmberTools (`antechamber`, `parmchk2`, `tleap`) when execution is requested, supports explicit protonation and water-retention choices, allows user-supplied ligand files, writes intermediates, and fails loudly if AM1-BCC/GAFF2/tleap cannot be run.
+
 ## Benchmarking
 
 Run the benchmark script with legacy and decomposed modes:
@@ -57,4 +72,11 @@ python scripts/benchmark_evb_decomposition.py --config examples/toy_evb.yaml --p
 python scripts/benchmark_evb_decomposition.py --config examples/toy_evb.yaml --platform CUDA --steps 5000 --repeats 3 --mode decomposed --output benchmarks/refactor_toy_cuda_decomposed.json --require-inputs true
 ```
 
-The script records CUDA usage, timing, mean EVB energy, shifted gap, force norms, decomposition counts, warnings, git SHA, and timestamp.
+The script also supports workflow-specific timing for native gap umbrella and native OpenMM gap metadynamics:
+
+```bash
+python scripts/benchmark_evb_decomposition.py --config benchmarks/hg317_gap_umbrella_benchmark.yaml --platform CUDA --workflow gap-umbrella --mode decomposed --steps 2000 --repeats 3 --output benchmarks/hg317_gap_umbrella_cuda_decomposed.json --require-inputs true --no-forces
+python scripts/benchmark_evb_decomposition.py --config benchmarks/hg317_gap_metad_benchmark.yaml --platform CUDA --workflow gap-metad --mode decomposed --steps 2000 --repeats 3 --output benchmarks/hg317_gap_metad_cuda_decomposed.json --require-inputs true --no-forces
+```
+
+CUDA benchmarks default to `--cuda-precision mixed`; use `--cuda-precision single` or `--cuda-precision double` to override. The script records CUDA usage, platform properties, timing, mean EVB energy, shifted gap, optional force norms, decomposition counts, warnings, git SHA, and timestamp.

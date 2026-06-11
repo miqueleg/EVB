@@ -13,7 +13,7 @@ from .config import EVBConfig, IRCSettings, ReferenceProfileSettings, load_confi
 from .analysis import build_analysis_report, build_coupling_scan, write_coupling_scan_outputs, write_reaction_coordinate_plots
 from .engine import validate_diabatic_states
 from .evb import EVBHamiltonian, EVBParameters, calibrate_evb_parameters
-from .evb_inputs import prepare_evb_ready_inputs
+from .evb_inputs import prepare_adiabatic_system_from_irc, prepare_evb_ready_inputs
 from .fitting import fit_bootstrap_parameters, fit_ensemble_parameters
 from .io import write_json
 from .irc import read_irc_xyz, write_irc_outputs
@@ -25,6 +25,7 @@ from .openmm_backend import (
     EVBSystemBuilder,
     OpenMMStateEvaluator,
     build_evb_gap_cv_force,
+    evb_diabatic_energies,
     create_dcd_writer,
     load_positions_file,
     write_dcd_frame,
@@ -68,6 +69,7 @@ def main() -> None:
             "irc-analyze",
             "setup-from-irc",
             "prepare-evb-inputs",
+            "prepare-adiabatic-system",
             "prepare-hg317-system",
             "plumed-md",
             "evb-metad",
@@ -157,6 +159,8 @@ def main() -> None:
         run_setup_from_irc(config, args)
     elif args.command == "prepare-evb-inputs":
         run_prepare_evb_inputs(config, args)
+    elif args.command == "prepare-adiabatic-system":
+        run_prepare_adiabatic_system(config, args)
     elif args.command == "plumed-md":
         run_plumed_md(config, Path(args.config).parent)
     elif args.command == "evb-metad":
@@ -224,6 +228,22 @@ def run_prepare_evb_inputs(config: EVBConfig, args: argparse.Namespace) -> None:
         config,
         config_path=args.config,
         output_dir=args.output,
+        extra_reactive_atoms=args.reactive_atom,
+        extra_reactive_pairs=pairs,
+    )
+    print(json.dumps(report, indent=2))
+
+
+def run_prepare_adiabatic_system(config: EVBConfig, args: argparse.Namespace) -> None:
+    pairs = []
+    for text in args.reactive_pair:
+        left, right = text.replace(":", ",").split(",", 1)
+        pairs.append((int(left), int(right)))
+    report = prepare_adiabatic_system_from_irc(
+        config,
+        config_path=args.config,
+        output_dir=args.output,
+        write_window_config=args.write_window_config,
         extra_reactive_atoms=args.reactive_atom,
         extra_reactive_pairs=pairs,
     )
@@ -479,7 +499,13 @@ def run_gap_metadynamics(config: EVBConfig) -> None:
         energy_decomposition=config.energy_decomposition.enabled,
     )
     if meta.wall_force_constant_kj_mol2 is not None:
-        wall_cv = build_evb_gap_cv_force(state1.system, state2.system, parameters.delta_alpha, prefix="gap_wall")
+        wall_cv = build_evb_gap_cv_force(
+            state1.system,
+            state2.system,
+            parameters.delta_alpha,
+            prefix="gap_wall",
+            energy_decomposition=config.energy_decomposition.enabled,
+        )
         wall_force = openmm.CustomCVForce(
             "0.5*k_gap_wall*(step(gap-gap_upper)*(gap-gap_upper)^2 + step(gap_lower-gap)*(gap-gap_lower)^2)"
         )
@@ -488,7 +514,13 @@ def run_gap_metadynamics(config: EVBConfig) -> None:
         wall_force.addGlobalParameter("gap_lower", float(meta.min_value))
         wall_force.addGlobalParameter("gap_upper", float(meta.max_value))
         evb_system.system.addForce(wall_force)
-    gap_cv = build_evb_gap_cv_force(state1.system, state2.system, parameters.delta_alpha, prefix="gap_metad")
+    gap_cv = build_evb_gap_cv_force(
+        state1.system,
+        state2.system,
+        parameters.delta_alpha,
+        prefix="gap_metad",
+        energy_decomposition=config.energy_decomposition.enabled,
+    )
     variable = app.BiasVariable(
         gap_cv,
         float(meta.min_value),
@@ -552,6 +584,7 @@ def run_gap_metadynamics(config: EVBConfig) -> None:
             "wall_force_constant_kj_mol2": meta.wall_force_constant_kj_mol2,
             "bias_dir": str(bias_dir),
             "platform": app_simulation.context.getPlatform().getName(),
+            "energy_decomposition": evb_system.energy_decomposition_report,
             "warning": (
                 "This is native OpenMM metadynamics on the EVB energy gap, not PLUMED OPES. "
                 "Use this for direct gap acceleration; use PLUMED only for geometry CVs until a gap bridge is implemented."
@@ -604,7 +637,7 @@ def _run_openmm_gap_metad_observable_md(app_simulation, evb_system, metadynamics
                 metadynamics.step(app_simulation, advance)
                 step = start + advance
                 context = app_simulation.context
-                energy1, energy2 = [float(value) for value in evb_system.evb_force.getCollectiveVariableValues(context)]
+                energy1, energy2 = evb_diabatic_energies(evb_system, context)
                 parameters = EVBParameters(
                     delta_alpha=context.getParameter("delta_alpha"),
                     h12=context.getParameter("h12"),

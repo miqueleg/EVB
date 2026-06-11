@@ -1,0 +1,86 @@
+project:
+  name: hg317-gap-umbrella-benchmark
+  output_dir: outputs/hg317_gap_umbrella_benchmark
+reaction:
+  metadata:
+    name: HG3.17 benchmark
+    phase: enzyme
+    temperature_k: 300.0
+    pressure_bar: 1.0
+  atoms:
+    donor: 4548
+    proton: 4555
+    acceptor: 1954
+  substrate_atoms:
+  - 4540
+  - 4541
+  - 4542
+  - 4543
+  - 4544
+  - 4545
+  - 4546
+  - 4547
+  - 4548
+  - 4549
+  - 4550
+  - 4551
+  - 4552
+  - 4553
+  - 4554
+  - 4555
+states:
+  state1:
+    format: openmm
+    topology: prep/hg317_full_irc/evb_ready/state1_evb_ready/system.xml
+    coordinates: prep/hg317_full_irc/evb_ready/state1_evb_ready/coordinates.pdb
+  state2:
+    format: openmm
+    topology: prep/hg317_full_irc/evb_ready/state2_evb_ready/system.xml
+    coordinates: prep/hg317_full_irc/evb_ready/state2_evb_ready/coordinates.pdb
+evb:
+  coupling_model:
+    model: constant
+    parameters:
+      delta_alpha_kj_mol: 396.7667143696792
+      h12_kj_mol: 705.1316403576698
+observables:
+  gap:
+    shifted: true
+  reaction_coordinates:
+  - name: proton_transfer_rc
+    kind: difference_of_distances
+    atom1: 4548
+    atom2: 4555
+    atom3: 1954
+  distances:
+  - name: donor_h
+    atom1: 4548
+    atom2: 4555
+  - name: h_acceptor
+    atom1: 4555
+    atom2: 1954
+sampling:
+  mode: gap_umbrella
+  integrator:
+    name: LangevinMiddle
+    timestep_fs: 0.05
+    friction_per_ps: 5.0
+    seed: 31701
+  md:
+    production_steps: 2000
+    report_stride: 200
+    platform: CUDA
+    temperature_k: 300.0
+    nonbonded_method: PME
+    constraints: None
+    minimize_steps: 500
+    minimize_tolerance: 10.0
+  windows:
+    gap_umbrella:
+      centers_kj_mol:
+      - -75.0
+      - 0.0
+      - 75.0
+      force_constant_kj_mol2: 0.0005
+  umbrella_ramp:
+    enabled: false

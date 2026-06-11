@@ -390,6 +390,7 @@ class EVBSystemBuilder:
         far_field_restraint: tuple[list[int], np.ndarray, float] | None = None,
         unconstrained_atoms: set[int] | None = None,
         add_cmmotion_remover: bool = True,
+        energy_decomposition: bool = False,
     ) -> EVBOpenMMSystem:
         self.validate_compatibility(state1, state2)
         system = openmm.System()
@@ -400,12 +401,25 @@ class EVBSystemBuilder:
         if state1.box_vectors_nm is not None:
             system.setDefaultPeriodicBoxVectors(*_to_box_vectors(state1.box_vectors_nm))
 
-        state1_force = _build_state_energy_force(state1.system, "s1")
-        state2_force = _build_state_energy_force(state2.system, "s2")
-        evb_force = openmm.CustomCVForce(
-            "0.5*(e1 + e2 + delta_alpha) - sqrt(0.25*(e1 - e2 - delta_alpha)^2 + h12^2)"
-            " + 0.5*k_gap*((e1 - e2 - delta_alpha)-gap_center)^2"
-        )
+        decomposition_report = _legacy_decomposition_report()
+        if energy_decomposition:
+            decomposition = _decompose_system_forces(state1.system, state2.system)
+            common_force = _aggregate_energy_forces(decomposition["common_forces"], "common")
+            state1_force = _aggregate_energy_forces(decomposition["state1_forces"], "s1")
+            state2_force = _aggregate_energy_forces(decomposition["state2_forces"], "s2")
+            evb_force = openmm.CustomCVForce(
+                "e_common + 0.5*(e1 + e2 + delta_alpha) - sqrt(0.25*(e1 - e2 - delta_alpha)^2 + h12^2)"
+                " + 0.5*k_gap*((e1 - e2 - delta_alpha)-gap_center)^2"
+            )
+            evb_force.addCollectiveVariable("e_common", common_force)
+            decomposition_report = decomposition["report"]
+        else:
+            state1_force = _build_state_energy_force(state1.system, "s1")
+            state2_force = _build_state_energy_force(state2.system, "s2")
+            evb_force = openmm.CustomCVForce(
+                "0.5*(e1 + e2 + delta_alpha) - sqrt(0.25*(e1 - e2 - delta_alpha)^2 + h12^2)"
+                " + 0.5*k_gap*((e1 - e2 - delta_alpha)-gap_center)^2"
+            )
         evb_force.addCollectiveVariable("e1", state1_force)
         evb_force.addCollectiveVariable("e2", state2_force)
         evb_force.addGlobalParameter("delta_alpha", delta_alpha)
@@ -447,6 +461,7 @@ class EVBSystemBuilder:
             equilibration_restraint_force=restraint_force,
             production_restraint_force=production_restraint_force,
             far_field_restraint_force=far_field_restraint_force,
+            energy_decomposition_report=decomposition_report,
         )
 
     def build_openmm_proton_transfer_umbrella_system(
@@ -601,16 +616,36 @@ def build_proton_transfer_cv_force(donor_index: int, proton_index: int, acceptor
     return cv_force
 
 
-def build_evb_gap_cv_force(state1_system: Any, state2_system: Any, delta_alpha: float, prefix: str = "gap"):
+def build_evb_gap_cv_force(
+    state1_system: Any,
+    state2_system: Any,
+    delta_alpha: float,
+    prefix: str = "gap",
+    energy_decomposition: bool = False,
+):
     """Build a CustomCVForce for gap = E1 - E2 - delta_alpha in kJ/mol."""
     _require_openmm()
-    state1_force = _build_state_energy_force(state1_system, f"{prefix}_s1")
-    state2_force = _build_state_energy_force(state2_system, f"{prefix}_s2")
+    if energy_decomposition:
+        decomposition = _decompose_system_forces(state1_system, state2_system)
+        state1_force = _aggregate_energy_forces(decomposition["state1_forces"], f"{prefix}_s1")
+        state2_force = _aggregate_energy_forces(decomposition["state2_forces"], f"{prefix}_s2")
+    else:
+        state1_force = _build_state_energy_force(state1_system, f"{prefix}_s1")
+        state2_force = _build_state_energy_force(state2_system, f"{prefix}_s2")
     gap_force = openmm.CustomCVForce("e1 - e2 - delta_alpha")
     gap_force.addCollectiveVariable("e1", state1_force)
     gap_force.addCollectiveVariable("e2", state2_force)
     gap_force.addGlobalParameter("delta_alpha", delta_alpha)
     return gap_force
+
+
+def evb_diabatic_energies(evb_system: EVBOpenMMSystem, context: Any) -> tuple[float, float]:
+    values = [float(value) for value in evb_system.evb_force.getCollectiveVariableValues(context)]
+    report = evb_system.energy_decomposition_report or {}
+    if report.get("enabled") and len(values) >= 3:
+        e_common, e1, e2 = values[:3]
+        return e_common + e1, e_common + e2
+    return values[0], values[1]
 
 
 def _build_distance_restraint_force(atom1: int, atom2: int, target_distance_nm: float, force_constant_kj_mol_nm2: float):

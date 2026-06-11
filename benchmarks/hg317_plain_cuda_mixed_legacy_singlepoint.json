@@ -1,0 +1,82 @@
+{
+  "config_path": "benchmarks/hg317_gap_umbrella_benchmark.yaml",
+  "mode": "legacy",
+  "workflow": "plain",
+  "platform_requested": "CUDA",
+  "platform_properties": {
+    "Precision": "mixed"
+  },
+  "cuda_available": true,
+  "cuda_actually_used": true,
+  "steps": 0,
+  "repeats": 1,
+  "skip_md": true,
+  "git_commit_sha": "893a862fdd0157e236a5571085034ad57deed171",
+  "timestamp": "2026-06-11T13:00:25.241879+00:00",
+  "python_version": "3.12.3 (main, Mar 23 2026, 19:04:32) [GCC 13.3.0]",
+  "openmm_version": "8.5.2.dev-36a30cb",
+  "results": [
+    {
+      "repeat": 0,
+      "status": "ok",
+      "workflow": "plain",
+      "build_time_seconds": 2.271146754035726,
+      "context_creation_time_seconds": 2.4483526488766074,
+      "minimization_time_seconds": null,
+      "md_wall_time_seconds": 0.002229192992672324,
+      "steps_per_second": null,
+      "ns_per_day": null,
+      "mean_evb_energy_kj_mol": -359485.7424777355,
+      "mean_shifted_gap_kj_mol": -40024.39114040821,
+      "mean_absolute_force_norm_kj_mol_nm": 756.6953937172348,
+      "number_of_atoms": 32777,
+      "number_of_forces": 2,
+      "number_of_common_forces": 0,
+      "number_of_state_specific_forces": 0,
+      "number_of_common_terms": 0,
+      "number_of_state_specific_terms": 0,
+      "warnings": [],
+      "decomposition_report": {
+        "enabled": false,
+        "mode": "legacy",
+        "n_common_forces": 0,
+        "n_state1_forces": 0,
+        "n_state2_forces": 0,
+        "n_common_terms": 0,
+        "n_state1_terms": 0,
+        "n_state2_terms": 0,
+        "unsupported_forces": [],
+        "warnings": []
+      }
+    }
+  ],
+  "summary": {
+    "context_creation_time_seconds": {
+      "mean": 2.4483526488766074,
+      "std": 0.0
+    },
+    "md_wall_time_seconds": {
+      "mean": 0.002229192992672324,
+      "std": 0.0
+    },
+    "mean_evb_energy_kj_mol": {
+      "mean": -359485.7424777355,
+      "std": 0.0
+    },
+    "mean_shifted_gap_kj_mol": {
+      "mean": -40024.39114040821,
+      "std": 0.0
+    },
+    "mean_absolute_force_norm_kj_mol_nm": {
+      "mean": 756.6953937172348,
+      "std": 0.0
+    },
+    "number_of_atoms": 32777,
+    "number_of_forces": 2,
+    "number_of_common_forces": 0,
+    "number_of_state_specific_forces": 0,
+    "number_of_common_terms": 0,
+    "number_of_state_specific_terms": 0,
+    "warnings": []
+  }
+}

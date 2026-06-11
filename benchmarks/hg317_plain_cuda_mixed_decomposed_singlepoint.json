@@ -1,0 +1,90 @@
+{
+  "config_path": "benchmarks/hg317_gap_umbrella_benchmark.yaml",
+  "mode": "decomposed",
+  "workflow": "plain",
+  "platform_requested": "CUDA",
+  "platform_properties": {
+    "Precision": "mixed"
+  },
+  "cuda_available": true,
+  "cuda_actually_used": true,
+  "steps": 0,
+  "repeats": 1,
+  "skip_md": true,
+  "git_commit_sha": "893a862fdd0157e236a5571085034ad57deed171",
+  "timestamp": "2026-06-11T13:00:29.304389+00:00",
+  "python_version": "3.12.3 (main, Mar 23 2026, 19:04:32) [GCC 13.3.0]",
+  "openmm_version": "8.5.2.dev-36a30cb",
+  "results": [
+    {
+      "repeat": 0,
+      "status": "ok",
+      "workflow": "plain",
+      "build_time_seconds": 8.713386066025123,
+      "context_creation_time_seconds": 0.9063960770145059,
+      "minimization_time_seconds": null,
+      "md_wall_time_seconds": 0.0031175720505416393,
+      "steps_per_second": null,
+      "ns_per_day": null,
+      "mean_evb_energy_kj_mol": -359485.7425407756,
+      "mean_shifted_gap_kj_mol": -40024.39094836484,
+      "mean_absolute_force_norm_kj_mol_nm": 756.6953928760739,
+      "number_of_atoms": 32777,
+      "number_of_forces": 2,
+      "number_of_common_forces": 3,
+      "number_of_state_specific_forces": 8,
+      "number_of_common_terms": 33552,
+      "number_of_state_specific_terms": 44,
+      "warnings": [
+        "NonbondedForce differs between states and was kept in full state-specific EVB evaluation; exact local decomposition for PME is not implemented."
+      ],
+      "decomposition_report": {
+        "enabled": true,
+        "mode": "exact",
+        "n_common_forces": 3,
+        "n_state1_forces": 4,
+        "n_state2_forces": 4,
+        "n_common_terms": 33552,
+        "n_state1_terms": 29,
+        "n_state2_terms": 15,
+        "unsupported_forces": [
+          "NonbondedForce"
+        ],
+        "warnings": [
+          "NonbondedForce differs between states and was kept in full state-specific EVB evaluation; exact local decomposition for PME is not implemented."
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "context_creation_time_seconds": {
+      "mean": 0.9063960770145059,
+      "std": 0.0
+    },
+    "md_wall_time_seconds": {
+      "mean": 0.0031175720505416393,
+      "std": 0.0
+    },
+    "mean_evb_energy_kj_mol": {
+      "mean": -359485.7425407756,
+      "std": 0.0
+    },
+    "mean_shifted_gap_kj_mol": {
+      "mean": -40024.39094836484,
+      "std": 0.0
+    },
+    "mean_absolute_force_norm_kj_mol_nm": {
+      "mean": 756.6953928760739,
+      "std": 0.0
+    },
+    "number_of_atoms": 32777,
+    "number_of_forces": 2,
+    "number_of_common_forces": 3,
+    "number_of_state_specific_forces": 8,
+    "number_of_common_terms": 33552,
+    "number_of_state_specific_terms": 44,
+    "warnings": [
+      "NonbondedForce differs between states and was kept in full state-specific EVB evaluation; exact local decomposition for PME is not implemented."
+    ]
+  }
+}

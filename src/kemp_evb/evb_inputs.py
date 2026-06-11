@@ -16,7 +16,7 @@ except ImportError:  # pragma: no cover
     unit = None
 
 from .config import EVBConfig
-from .irc import canonicalize_irc_path, read_irc_xyz
+from .irc import canonicalize_irc_path, identify_fixed_atoms, read_irc_xyz
 from .openmm_backend import AmberSystemLoader, EVBSystemBuilder, write_openmm_bundle
 
 
@@ -102,6 +102,122 @@ def prepare_evb_ready_inputs(
     }
     (out_dir / "evb_ready_input_report.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     return report
+
+
+def prepare_adiabatic_system_from_irc(
+    config: EVBConfig,
+    config_path: str | Path,
+    output_dir: str | Path | None = None,
+    write_window_config: bool = False,
+    extra_reactive_atoms: list[int] | None = None,
+    extra_reactive_pairs: list[tuple[int, int]] | None = None,
+) -> dict[str, Any]:
+    """Create EVB-ready OpenMM bundles and calibrated adiabatic setup from an IRC config."""
+    from .config import load_config
+    from .irc_setup import setup_from_irc
+
+    prep_report = prepare_evb_ready_inputs(
+        config,
+        config_path=config_path,
+        output_dir=output_dir,
+        extra_reactive_atoms=extra_reactive_atoms,
+        extra_reactive_pairs=extra_reactive_pairs,
+    )
+    derived_config_path = prep_report["derived_config"]
+    derived_config = load_config(derived_config_path)
+    mapping_report = _ensure_missing_alpha_carbon_mapping(derived_config)
+    setup_report = setup_from_irc(derived_config, write_window_config=write_window_config)
+    report = {
+        "status": "adiabatic_system_prepared",
+        "source_config": str(config_path),
+        "output_dir": prep_report["output_dir"],
+        "derived_config": derived_config_path,
+        "state1_bundle": prep_report["state1_bundle"],
+        "state2_bundle": prep_report["state2_bundle"],
+        "evb_ready_input_report": prep_report,
+        "mapping_report": mapping_report,
+        "setup_from_irc_report": setup_report,
+        "warnings": [
+            "Adiabatic OpenMM EVB-ready bundles were generated from AMBER endpoint states.",
+            "IRC calibration was rerun against the derived EVB-ready config; use the derived config for HG3.17 benchmarks/sampling.",
+        ],
+    }
+    report_path = Path(prep_report["output_dir"]) / "adiabatic_system_report.json"
+    report_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    return report
+
+
+
+def _ensure_missing_alpha_carbon_mapping(config: EVBConfig) -> dict[str, Any]:
+    embedding = config.irc.embedding or {}
+    mapping_path = embedding.get("alpha_carbon_mapping") or embedding.get("mapping_file")
+    if not mapping_path:
+        return {"created": False, "reason": "No alpha-carbon mapping path configured."}
+    path = Path(mapping_path)
+    if path.exists():
+        return {"created": False, "path": str(path), "reason": "Mapping file already exists."}
+    if not config.irc.path:
+        return {"created": False, "path": str(path), "reason": "No IRC path configured."}
+    pdb_path = Path(embedding.get("reference_pdb", "inputs/5RGE.pdb"))
+    if not pdb_path.exists():
+        return {"created": False, "path": str(path), "reason": f"Reference PDB is missing: {pdb_path}"}
+    frames = read_irc_xyz(config.irc.path)
+    fixed_carbons = identify_fixed_atoms(frames, element="C")
+    ca_atoms = _read_ca_atoms_for_mapping(pdb_path)
+    mappings = []
+    for candidate in fixed_carbons:
+        coord = np.asarray([candidate.x_angstrom, candidate.y_angstrom, candidate.z_angstrom], dtype=float)
+        distance, atom = min((float(np.linalg.norm(coord - item["coord_angstrom"])), item) for item in ca_atoms)
+        mappings.append(
+            {
+                "irc_atom_index": candidate.frame_atom_index,
+                "irc_element": candidate.element,
+                "irc_coordinate_angstrom": [candidate.x_angstrom, candidate.y_angstrom, candidate.z_angstrom],
+                "pdb": {
+                    "id": pdb_path.stem,
+                    "atom_serial": atom["serial"],
+                    "atom_name": "CA",
+                    "chain_id": atom["chain_id"],
+                    "residue_name": atom["residue_name"],
+                    "residue_number": atom["residue_number"],
+                    "coordinate_angstrom": atom["coord_angstrom"].tolist(),
+                },
+                "match_distance_angstrom": distance,
+                "confidence": "exact" if distance < 0.05 else "review" if distance < 0.5 else "low",
+            }
+        )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {"reference_pdb": str(pdb_path), "irc_xyz": str(config.irc.path), "alpha_carbon_mapping": mappings}
+    path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+    return {
+        "created": True,
+        "path": str(path),
+        "n_mappings": len(mappings),
+        "max_match_distance_angstrom": max((item["match_distance_angstrom"] for item in mappings), default=None),
+    }
+
+
+def _read_ca_atoms_for_mapping(path: Path) -> list[dict[str, Any]]:
+    atoms = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.startswith("ATOM"):
+            continue
+        atom_name = line[12:16].strip()
+        altloc = line[16].strip()
+        if atom_name != "CA" or altloc not in ("", "A"):
+            continue
+        atoms.append(
+            {
+                "serial": int(line[6:11]),
+                "residue_name": line[17:20].strip(),
+                "chain_id": line[21].strip(),
+                "residue_number": int(line[22:26]),
+                "coord_angstrom": np.asarray([float(line[30:38]), float(line[38:46]), float(line[46:54])], dtype=float),
+            }
+        )
+    if not atoms:
+        raise ValueError(f"No alpha carbon atoms found in {path}.")
+    return atoms
 
 
 def _infer_reactive_atoms(config: EVBConfig) -> set[int]:

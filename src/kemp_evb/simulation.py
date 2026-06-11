@@ -9,7 +9,7 @@ import numpy as np
 
 from .cv import proton_transfer_coordinate
 from .evb import EVBHamiltonian, EVBParameters, EVBResult
-from .openmm_backend import EVBOpenMMSystem, _require_openmm
+from .openmm_backend import EVBOpenMMSystem, evb_diabatic_energies, _require_openmm
 
 try:
     import openmm
@@ -37,6 +37,7 @@ class EVBSimulation:
         evb_system: EVBOpenMMSystem,
         integrator: Any,
         platform_name: str | None = None,
+        platform_properties: dict[str, str] | None = None,
         cv_atoms: tuple[int, int, int] | None = None,
     ):
         _require_openmm()
@@ -45,7 +46,7 @@ class EVBSimulation:
         self.cv_atoms = cv_atoms
         if platform_name:
             platform = openmm.Platform.getPlatformByName(platform_name)
-            self.context = openmm.Context(evb_system.system, integrator, platform)
+            self.context = openmm.Context(evb_system.system, integrator, platform, platform_properties or {})
         else:
             self.context = openmm.Context(evb_system.system, integrator)
         if evb_system.box_vectors_nm is not None:
@@ -172,12 +173,7 @@ class EVBSimulation:
         )
 
     def _state_energies(self) -> tuple[float, float]:
-        values = [float(value) for value in self.evb_system.evb_force.getCollectiveVariableValues(self.context)]
-        report = self.evb_system.energy_decomposition_report or {}
-        if report.get("enabled") and len(values) >= 3:
-            e_common, e1, e2 = values[:3]
-            return e_common + e1, e_common + e2
-        return values[0], values[1]
+        return evb_diabatic_energies(self.evb_system, self.context)
 
     def _time_ps(self) -> float:
         if hasattr(self.integrator, "getStepSize"):
