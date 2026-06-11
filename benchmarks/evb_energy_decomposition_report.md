@@ -9,7 +9,7 @@ The diagnostics now report that explicitly instead of hiding the cost behind sma
 ## Git Commits
 
 - Commit before this audit: `63a1ce8ff5745effd3b574566fe07d99e20c3167`
-- Audit/fix commit: pending at report generation time; see final response for the committed SHA.
+- Audit/fix commit: `6e6ddec360b5d6cb6f9e28dfe39154059fe8b1ea`.
 
 ## Environment
 
