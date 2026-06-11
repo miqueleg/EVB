@@ -7,7 +7,7 @@ This branch adds an optional exact native EVB energy-decomposition path. The leg
 ## Git Commits
 
 - Baseline benchmark commit: `e24af61054438371d7a76f8eaf15f3fe0813dd8c`
-- Refactor/report commit at generation time: `35b8a74`
+- Refactor/report commit at generation time: `107b173ca311e1fce28e294cc7716b901cba226d`
 
 ## Environment
 
