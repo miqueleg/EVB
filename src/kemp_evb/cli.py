@@ -47,6 +47,7 @@ from .hg317_gxtb_calibration import (
     smoke_hg317_qregion_gxtb,
     validate_hg317_qregion_gxtb,
 )
+from .hg317_stability import run_hg317_qregion_stability_check
 from .observables import compute_named_distances, compute_named_reaction_coordinates, make_gap_sample
 from .openmm_backend import (
     AmberSystemLoader,
@@ -116,6 +117,7 @@ def main() -> None:
             "validate-hg317-qregion-gxtb",
             "smoke-hg317-qregion-gxtb",
             "hg317-qregion-gxtb-workflow",
+            "hg317-qregion-stability-check",
             "evb-gap-opes",
             "make-template",
         ],
@@ -153,6 +155,10 @@ def main() -> None:
     parser.add_argument("--force-smoke", action="store_true", help="Run smoke benchmark even if validation thresholds fail")
     parser.add_argument("--smoke-steps", "--steps", dest="smoke_steps", type=int, default=2000, help="Number of MD steps for HG3.17 Q-region smoke benchmark")
     parser.add_argument("--smoke-policy", choices=["exploratory", "force"], default="exploratory", help="Smoke policy for HG3.17 g-xTB calibrated candidates")
+    parser.add_argument("--plain-steps", type=int, default=100000, help="Plain Q-region EVB MD steps for HG3.17 stability checks")
+    parser.add_argument("--table-metad-steps", type=int, default=100000, help="Native table-metad Q-region MD steps for HG3.17 stability checks")
+    parser.add_argument("--quick", action="store_true", help="Use 10000-step quick stability checks")
+    parser.add_argument("--stability-report-interval", type=int, help="Report interval for HG3.17 stability observables")
     args = parser.parse_args()
 
     if args.command == "make-template":
@@ -207,6 +213,19 @@ def main() -> None:
             args.platform,
             args.smoke_steps,
             args.smoke_policy,
+        ), indent=2))
+        return
+    if args.command == "hg317-qregion-stability-check":
+        if not args.config:
+            raise ValueError("--config is required for hg317-qregion-stability-check.")
+        print(json.dumps(run_hg317_qregion_stability_check(
+            args.config,
+            args.output or str(Path("outputs") / "hg317_qregion_stability"),
+            args.platform,
+            plain_steps=args.plain_steps,
+            table_metad_steps=args.table_metad_steps,
+            quick=args.quick,
+            report_interval=args.stability_report_interval,
         ), indent=2))
         return
     if not args.config:
