@@ -41,6 +41,12 @@ from .hg317_qregion import (
     run_hg317_qregion_smoke,
     validate_hg317_qregion_candidates,
 )
+from .hg317_gxtb_calibration import (
+    calibrate_hg317_qregion_gxtb,
+    hg317_qregion_gxtb_workflow,
+    smoke_hg317_qregion_gxtb,
+    validate_hg317_qregion_gxtb,
+)
 from .observables import compute_named_distances, compute_named_reaction_coordinates, make_gap_sample
 from .openmm_backend import (
     AmberSystemLoader,
@@ -106,6 +112,10 @@ def main() -> None:
             "q-region-fit-irc",
             "validate-hg317-qregion-candidates",
             "run-best-hg317-qregion-smoke",
+            "calibrate-hg317-qregion-gxtb",
+            "validate-hg317-qregion-gxtb",
+            "smoke-hg317-qregion-gxtb",
+            "hg317-qregion-gxtb-workflow",
             "evb-gap-opes",
             "make-template",
         ],
@@ -135,10 +145,14 @@ def main() -> None:
     parser.add_argument("--q-atom", action="append", type=int, default=[], help="0-based OpenMM atom index for Q-region derivation")
     parser.add_argument("--include-reaction-atoms", action="store_true", help="Include reaction/substrate atoms in derived Q-region proposal")
     parser.add_argument("--candidate-dir", help="Candidate directory for HG3.17 Q-region validation workflows")
+    parser.add_argument("--calibrated-dir", help="Calibrated candidate directory for HG3.17 g-xTB workflows")
+    parser.add_argument("--reference", help="Reference profile YAML for HG3.17 g-xTB calibration")
+    parser.add_argument("--profile", default="relative_to_RC", help="Named reaction profile inside the reference YAML")
     parser.add_argument("--platform", help="OpenMM platform override for candidate validation/smoke workflows")
     parser.add_argument("--run-smoke", action="store_true", help="Run smoke benchmark for selected HG3.17 Q-region candidate")
     parser.add_argument("--force-smoke", action="store_true", help="Run smoke benchmark even if validation thresholds fail")
-    parser.add_argument("--smoke-steps", type=int, default=2000, help="Number of MD steps for HG3.17 Q-region smoke benchmark")
+    parser.add_argument("--smoke-steps", "--steps", dest="smoke_steps", type=int, default=2000, help="Number of MD steps for HG3.17 Q-region smoke benchmark")
+    parser.add_argument("--smoke-policy", choices=["exploratory", "force"], default="exploratory", help="Smoke policy for HG3.17 g-xTB calibrated candidates")
     args = parser.parse_args()
 
     if args.command == "make-template":
@@ -170,6 +184,29 @@ def main() -> None:
             args.platform,
             args.smoke_steps,
             forced=args.force_smoke,
+        ), indent=2))
+        return
+    if args.command == "validate-hg317-qregion-gxtb":
+        if not args.calibrated_dir:
+            raise ValueError("--calibrated-dir is required for validate-hg317-qregion-gxtb.")
+        if not args.reference:
+            raise ValueError("--reference is required for validate-hg317-qregion-gxtb.")
+        print(json.dumps(validate_hg317_qregion_gxtb(
+            args.calibrated_dir,
+            args.reference,
+            args.output or str(Path(args.calibrated_dir) / "validation"),
+            args.platform,
+        ), indent=2))
+        return
+    if args.command == "smoke-hg317-qregion-gxtb":
+        if not args.calibrated_dir:
+            raise ValueError("--calibrated-dir is required for smoke-hg317-qregion-gxtb.")
+        print(json.dumps(smoke_hg317_qregion_gxtb(
+            args.calibrated_dir,
+            args.output or str(Path(args.calibrated_dir) / "smoke"),
+            args.platform,
+            args.smoke_steps,
+            args.smoke_policy,
         ), indent=2))
         return
     if not args.config:
@@ -253,6 +290,33 @@ def main() -> None:
             config,
             args.config,
             args.output or str(Path(config.output_dir) / "q_region_fit"),
+        ), indent=2))
+    elif args.command == "calibrate-hg317-qregion-gxtb":
+        if not args.reference:
+            raise ValueError("--reference is required for calibrate-hg317-qregion-gxtb.")
+        if not args.candidate_dir:
+            raise ValueError("--candidate-dir is required for calibrate-hg317-qregion-gxtb.")
+        print(json.dumps(calibrate_hg317_qregion_gxtb(
+            config,
+            args.config,
+            args.reference,
+            args.candidate_dir,
+            args.output or str(Path(config.output_dir) / "hg317_qregion_gxtb_calibrated"),
+            args.profile,
+            args.platform,
+        ), indent=2))
+    elif args.command == "hg317-qregion-gxtb-workflow":
+        if not args.reference:
+            raise ValueError("--reference is required for hg317-qregion-gxtb-workflow.")
+        print(json.dumps(hg317_qregion_gxtb_workflow(
+            config,
+            args.config,
+            args.reference,
+            args.output or str(Path(config.output_dir) / "hg317_qregion_gxtb_workflow"),
+            args.profile,
+            args.platform,
+            args.smoke_steps,
+            args.smoke_policy,
         ), indent=2))
     elif args.command == "evb-gap-opes":
         raise ValueError(

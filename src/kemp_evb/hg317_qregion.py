@@ -484,7 +484,7 @@ def run_hg317_qregion_smoke(config_path: str | Path, output: str | Path, platfor
         "steps_per_s": smoke_steps / wall if wall else None,
         "ns_per_day": (smoke_steps * config.simulation.timestep_fs * 1e-6) / (wall / 86400.0) if wall else None,
         "parameters": asdict(params),
-        "parameters_refit": "fits" in str(config_path),
+        "parameters_refit": ("fits" in str(config_path) or "fitted" in str(config_path) or bool(getattr(config, "q_region", {}) and config.q_region.get("calibration"))),
         "q_region_report": q_system.q_region_report,
         **metad.timing_report(),
     }

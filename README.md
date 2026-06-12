@@ -148,7 +148,7 @@ PLUMED support is optional and currently intended for geometrical CVs such as di
 
 Read `docs/validation.md` before trusting any EVB barrier.
 
-Q-region EVB architecture and validation are documented in [`docs/q_region_evb.md`](docs/q_region_evb.md).
+Q-region EVB architecture and validation are documented in [`docs/q_region_evb.md`](docs/q_region_evb.md). HG3.17 Q-region calibration to the user-provided g-xTB profile is documented in [`docs/hg317_qregion_gxtb_calibration.md`](docs/hg317_qregion_gxtb_calibration.md).
 
 Native tabulated EVB gap biasing for `evb-gap-table-metad` is documented in [`docs/native_gap_bias.md`](docs/native_gap_bias.md). This path avoids the separate OpenMM `app.Metadynamics`/`BiasVariable` gap-CV evaluation, but it does not remove duplicated full PME in exact decomposed systems.
 
