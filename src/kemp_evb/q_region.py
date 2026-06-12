@@ -169,6 +169,8 @@ class QRegionSystemBuilder:
         delta_alpha: float,
         h12: float,
         native_gap_bias_table: NativeGapBiasTable1D | None = None,
+        gap_umbrella_center: float | None = None,
+        gap_umbrella_force_constant: float | None = None,
         add_cmmotion_remover: bool = True,
     ) -> QRegionEVBSystem:
         baseline = state1 if self.spec.baseline_state == "state1" else state2
@@ -266,11 +268,18 @@ class QRegionSystemBuilder:
         expression = "0.5*(e1_Q + e2_Q + delta_alpha) - sqrt(0.25*(e1_Q - e2_Q - delta_alpha)^2 + h12^2)"
         if native_gap_bias_table is not None:
             expression += " + gap_bias(e1_Q - e2_Q - delta_alpha)"
+        if gap_umbrella_center is not None or gap_umbrella_force_constant is not None:
+            if gap_umbrella_center is None or gap_umbrella_force_constant is None:
+                raise ValueError("Q-region gap umbrella requires both center and force constant.")
+            expression += " + 0.5*k_gap*((e1_Q - e2_Q - delta_alpha)-gap_center)^2"
         evb_force = openmm.CustomCVForce(expression)
         evb_force.addCollectiveVariable("e1_Q", q_state1_force)
         evb_force.addCollectiveVariable("e2_Q", q_state2_force)
         evb_force.addGlobalParameter("delta_alpha", float(delta_alpha))
         evb_force.addGlobalParameter("h12", float(h12))
+        if gap_umbrella_center is not None:
+            evb_force.addGlobalParameter("k_gap", float(gap_umbrella_force_constant))
+            evb_force.addGlobalParameter("gap_center", float(gap_umbrella_center))
         table_index = None
         if native_gap_bias_table is not None:
             table_index = native_gap_bias_table.add_to_force(evb_force)

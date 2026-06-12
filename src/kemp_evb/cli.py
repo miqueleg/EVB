@@ -34,30 +34,18 @@ from .q_region import (
 )
 from .irc import read_irc_xyz, write_irc_outputs
 from .irc_setup import setup_from_irc
-from .hg317_prep import prepare_hg317_system
-from .hg317_qregion import (
-    make_hg317_qregion_candidates,
-    q_region_fit_irc,
-    run_hg317_qregion_smoke,
-    validate_hg317_qregion_candidates,
+from .reference_profile import load_reference_profile
+from .profile_calibration import calibrate_profile_from_files
+from .qregion_candidates import make_qregion_candidates
+from .sampling_workflow import (
+    derive_gap_windows,
+    generate_workflow_configs,
+    validate_workflow_config,
+    write_run_scripts as write_generic_run_scripts,
 )
-from .hg317_gxtb_calibration import (
-    calibrate_hg317_qregion_gxtb,
-    hg317_qregion_gxtb_workflow,
-    smoke_hg317_qregion_gxtb,
-    validate_hg317_qregion_gxtb,
-)
-from .hg317_stability import run_hg317_qregion_stability_check
-from .hg317_reproduction import (
-    analyze_and_compare_reproduction,
-    generate_reproduction_configs,
-    prepare_selected_candidate_config,
-    run_qregion_metad,
-    run_qregion_umbrella,
-    run_reproduction_workflow,
-    settings_for_mode,
-    write_reproduction_scripts,
-)
+from .umbrella_analysis import analyze_umbrella_outputs
+from .metad_analysis import reconstruct_wt_fel_from_bias_table
+from .reproduction_workflow import compare_profile
 from .observables import compute_named_distances, compute_named_reaction_coordinates, make_gap_sample
 from .openmm_backend import (
     AmberSystemLoader,
@@ -110,7 +98,6 @@ def main() -> None:
             "setup-from-irc",
             "prepare-evb-inputs",
             "prepare-adiabatic-system",
-            "prepare-hg317-system",
             "plumed-md",
             "evb-metad",
             "evb-opes",
@@ -119,21 +106,19 @@ def main() -> None:
             "derive-q-region",
             "q-region-singlepoint",
             "q-region-gap-table-metad",
-            "make-hg317-qregion-candidates",
             "q-region-fit-irc",
-            "validate-hg317-qregion-candidates",
-            "run-best-hg317-qregion-smoke",
-            "calibrate-hg317-qregion-gxtb",
-            "validate-hg317-qregion-gxtb",
-            "smoke-hg317-qregion-gxtb",
-            "hg317-qregion-gxtb-workflow",
-            "hg317-qregion-stability-check",
-            "hg317-qregion-reproduce",
-            "hg317-qregion-run-umbrella",
-            "hg317-qregion-run-metad",
-            "hg317-qregion-analyze-reproduction",
-            "hg317-qregion-compare-reproduction",
             "evb-gap-opes",
+            "validate-workflow-config",
+            "make-qregion-candidates",
+            "calibrate-profile",
+            "derive-windows",
+            "run-umbrella",
+            "analyze-umbrella",
+            "run-metad",
+            "analyze-metad",
+            "run-workflow",
+            "compare-profile",
+            "write-run-scripts",
             "make-template",
         ],
     )
@@ -158,145 +143,99 @@ def main() -> None:
     parser.add_argument("--window", help="Window id for sample-window, e.g. w000")
     parser.add_argument("--h12-values", help="Comma-separated H12 values in kJ/mol for scan-coupling")
     parser.add_argument("--qm-guide", help="Optional QM geometry guide JSON for 2D reaction-coordinate plotting")
-    parser.add_argument("--kind", choices=["solution", "enzyme", "toy"], help="Template kind for make-template")
+    parser.add_argument("--kind", choices=["solution", "enzyme", "toy", "generic_full_state", "generic_q_region", "generic_q_region_local_pme", "generic_with_irc"], help="Template kind for make-template")
     parser.add_argument("--q-atom", action="append", type=int, default=[], help="0-based OpenMM atom index for Q-region derivation")
     parser.add_argument("--include-reaction-atoms", action="store_true", help="Include reaction/substrate atoms in derived Q-region proposal")
-    parser.add_argument("--candidate-dir", help="Candidate directory for HG3.17 Q-region validation workflows")
-    parser.add_argument("--calibrated-dir", help="Calibrated candidate directory for HG3.17 g-xTB workflows")
-    parser.add_argument("--reference", help="Reference profile YAML for HG3.17 g-xTB calibration")
+    parser.add_argument("--candidate-dir", help="Candidate directory for Q-region validation workflows")
+    parser.add_argument("--calibrated-dir", help="Calibrated candidate directory for profile-calibrated workflows")
+    parser.add_argument("--reference", help="Reference profile YAML for calibration/comparison")
     parser.add_argument("--profile", default="relative_to_RC", help="Named reaction profile inside the reference YAML")
-    parser.add_argument("--platform", help="OpenMM platform override for candidate validation/smoke workflows")
-    parser.add_argument("--run-smoke", action="store_true", help="Run smoke benchmark for selected HG3.17 Q-region candidate")
+    parser.add_argument("--platform", help="OpenMM platform override for workflow commands")
+    parser.add_argument("--run-smoke", action="store_true", help="Run a smoke benchmark for the selected Q-region candidate")
     parser.add_argument("--force-smoke", action="store_true", help="Run smoke benchmark even if validation thresholds fail")
-    parser.add_argument("--smoke-steps", "--steps", dest="smoke_steps", type=int, default=2000, help="Number of MD steps for HG3.17 Q-region smoke benchmark")
-    parser.add_argument("--smoke-policy", choices=["exploratory", "force"], default="exploratory", help="Smoke policy for HG3.17 g-xTB calibrated candidates")
-    parser.add_argument("--plain-steps", type=int, default=100000, help="Plain Q-region EVB MD steps for HG3.17 stability checks")
-    parser.add_argument("--table-metad-steps", type=int, default=100000, help="Native table-metad Q-region MD steps for HG3.17 stability checks")
+    parser.add_argument("--smoke-steps", "--steps", dest="smoke_steps", type=int, default=2000, help="Number of MD steps for smoke benchmarks")
+    parser.add_argument("--smoke-policy", choices=["exploratory", "force"], default="exploratory", help="Smoke policy for calibrated candidates")
+    parser.add_argument("--plain-steps", type=int, default=100000, help="Plain Q-region EVB MD steps for stability checks")
+    parser.add_argument("--table-metad-steps", type=int, default=100000, help="Native table-metad Q-region MD steps for stability checks")
     parser.add_argument("--quick", action="store_true", help="Use 10000-step quick stability checks")
-    parser.add_argument("--stability-report-interval", type=int, help="Report interval for HG3.17 stability observables")
-    parser.add_argument("--mode", choices=["quick", "pilot", "production"], default="quick", help="HG3.17 reproduction mode")
-    parser.add_argument("--workflow", choices=["umbrella", "metad", "all", "analysis-only"], default="all", help="HG3.17 reproduction workflow")
+    parser.add_argument("--stability-report-interval", type=int, help="Report interval for stability observables")
+    parser.add_argument("--mode", choices=["quick", "pilot", "production"], default="quick", help="Generic workflow mode")
+    parser.add_argument("--workflow", choices=["umbrella", "metad", "all", "analysis-only"], default="all", help="Generic workflow selection")
     parser.add_argument("--replicas", type=int, help="Number of metadynamics replicas")
     parser.add_argument("--umbrella-steps", type=int, help="Umbrella production steps per quick/proxy window")
     parser.add_argument("--metad-steps", type=int, help="Metadynamics steps per replica")
-    parser.add_argument("--write-run-scripts-only", action="store_true", help="Only generate reproduction configs and shell scripts")
-    parser.add_argument("--resume", action="store_true", help="Resume HG3.17 reproduction workflow where supported")
-    parser.add_argument("--skip-existing", action="store_true", help="Skip existing HG3.17 reproduction outputs")
+    parser.add_argument("--write-run-scripts-only", action="store_true", help="Only generate workflow configs and shell scripts")
+    parser.add_argument("--resume", action="store_true", help="Resume Generic workflow selection where supported")
+    parser.add_argument("--skip-existing", action="store_true", help="Skip existing workflow outputs")
     parser.add_argument("--barrier-warning-kcal", type=float, default=2.0, help="Barrier warning threshold versus reference in kcal/mol")
     parser.add_argument("--barrier-fail-kcal", type=float, default=3.0, help="Barrier failure threshold versus reference in kcal/mol")
+    parser.add_argument("--screen-steps", type=int, default=1000, help="Short screening steps for scientific sampling setup")
+    parser.add_argument("--no-run-short-screen", action="store_true", help="Only prepare scientific sampling inputs; do not run short screens")
+    parser.add_argument("--max-screen-candidates", type=int, default=2, help="Maximum fitted Q-region candidates to run in short dynamic screens")
     args = parser.parse_args()
 
     if args.command == "make-template":
-        run_make_template(args.kind or "toy")
+        run_make_template(args.kind or "toy", args.output)
         return
     if args.command == "irc-analyze":
         if not args.irc:
             raise ValueError("--irc is required for irc-analyze.")
         run_irc_analyze(args.irc, args.output)
         return
-    if args.command == "validate-hg317-qregion-candidates":
-        if not args.candidate_dir:
-            raise ValueError("--candidate-dir is required for validate-hg317-qregion-candidates.")
-        print(json.dumps(validate_hg317_qregion_candidates(
-            args.candidate_dir,
-            args.output or str(Path(args.candidate_dir) / "validation"),
-            args.platform,
-            run_smoke=args.run_smoke,
-            smoke_steps=args.smoke_steps,
-            force_smoke=args.force_smoke,
-        ), indent=2))
-        return
-    if args.command == "run-best-hg317-qregion-smoke":
+    if args.command == "validate-workflow-config":
         if not args.config:
-            raise ValueError("--config is required for run-best-hg317-qregion-smoke.")
-        print(json.dumps(run_hg317_qregion_smoke(
-            args.config,
-            args.output or str(Path("outputs") / "hg317_qregion_smoke"),
-            args.platform,
-            args.smoke_steps,
-            forced=args.force_smoke,
-        ), indent=2))
+            raise ValueError("--config is required for validate-workflow-config.")
+        print(json.dumps(validate_workflow_config(args.config), indent=2))
         return
-    if args.command == "validate-hg317-qregion-gxtb":
-        if not args.calibrated_dir:
-            raise ValueError("--calibrated-dir is required for validate-hg317-qregion-gxtb.")
+    if args.command == "make-qregion-candidates":
+        if not args.config:
+            raise ValueError("--config is required for make-qregion-candidates.")
+        print(json.dumps(make_qregion_candidates(args.config, args.output or str(Path("outputs") / "qregion_candidates")), indent=2))
+        return
+    if args.command == "calibrate-profile":
+        if not args.reference or not args.coords:
+            raise ValueError("calibrate-profile requires --reference and --coords pointing to a frame-energy CSV.")
+        print(json.dumps(calibrate_profile_from_files(args.reference, args.coords, args.output or str(Path("outputs") / "profile_calibration")), indent=2))
+        return
+    if args.command == "derive-windows":
+        if not args.config:
+            raise ValueError("--config is required for derive-windows.")
+        print(json.dumps(derive_gap_windows(args.config, args.output or str(Path("outputs") / "derived_windows")), indent=2))
+        return
+    if args.command == "analyze-umbrella":
+        if not args.coords:
+            raise ValueError("analyze-umbrella requires --coords as a comma-separated list of observables CSV files.")
+        print(json.dumps(analyze_umbrella_outputs([x for x in args.coords.split(",") if x], args.output or str(Path("outputs") / "umbrella_analysis")), indent=2))
+        return
+    if args.command == "analyze-metad":
+        if not args.coords:
+            raise ValueError("analyze-metad requires --coords pointing to a native bias table CSV.")
+        print(json.dumps(reconstruct_wt_fel_from_bias_table(args.coords, args.output or str(Path("outputs") / "metad_analysis"), bias_factor=float(args.profile or 15.0)), indent=2))
+        return
+    if args.command == "run-workflow":
+        if not args.config:
+            raise ValueError("--config is required for run-workflow.")
+        print(json.dumps(generate_workflow_configs(args.config, args.output or str(Path("outputs") / "evb_workflow"), mode=args.mode, workflow=args.workflow, umbrella_steps=args.umbrella_steps, metad_steps=args.metad_steps, replicas=args.replicas), indent=2))
+        return
+    if args.command == "compare-profile":
         if not args.reference:
-            raise ValueError("--reference is required for validate-hg317-qregion-gxtb.")
-        print(json.dumps(validate_hg317_qregion_gxtb(
-            args.calibrated_dir,
-            args.reference,
-            args.output or str(Path(args.calibrated_dir) / "validation"),
-            args.platform,
-        ), indent=2))
+            raise ValueError("--reference is required for compare-profile.")
+        print(json.dumps(compare_profile(args.reference, args.output or str(Path("outputs") / "profile_comparison")), indent=2))
         return
-    if args.command == "smoke-hg317-qregion-gxtb":
-        if not args.calibrated_dir:
-            raise ValueError("--calibrated-dir is required for smoke-hg317-qregion-gxtb.")
-        print(json.dumps(smoke_hg317_qregion_gxtb(
-            args.calibrated_dir,
-            args.output or str(Path(args.calibrated_dir) / "smoke"),
-            args.platform,
-            args.smoke_steps,
-            args.smoke_policy,
-        ), indent=2))
+    if args.command == "write-run-scripts":
+        print(json.dumps(write_generic_run_scripts(args.output or str(Path("outputs") / "evb_workflow")), indent=2))
         return
-    if args.command == "hg317-qregion-stability-check":
+    if args.command in {"run-umbrella", "run-metad"}:
         if not args.config:
-            raise ValueError("--config is required for hg317-qregion-stability-check.")
-        print(json.dumps(run_hg317_qregion_stability_check(
-            args.config,
-            args.output or str(Path("outputs") / "hg317_qregion_stability"),
-            args.platform,
-            plain_steps=args.plain_steps,
-            table_metad_steps=args.table_metad_steps,
-            quick=args.quick,
-            report_interval=args.stability_report_interval,
-        ), indent=2))
-        return
-    if args.command == "hg317-qregion-reproduce":
-        if not args.config:
-            raise ValueError("--config is required for hg317-qregion-reproduce.")
-        if not args.reference:
-            raise ValueError("--reference is required for hg317-qregion-reproduce.")
+            raise ValueError("--config is required.")
         config = load_config(args.config)
-        print(json.dumps(run_reproduction_workflow(
-            config,
-            args.config,
-            args.reference,
-            args.output or str(Path("outputs") / "hg317_qregion_reproduction"),
-            platform=args.platform,
-            mode=args.mode,
-            workflow=args.workflow,
-            replicas=args.replicas,
-            umbrella_steps=args.umbrella_steps,
-            metad_steps=args.metad_steps,
-            write_run_scripts_only=args.write_run_scripts_only,
-            resume=args.resume,
-            skip_existing=args.skip_existing,
-            barrier_warning_kcal=args.barrier_warning_kcal,
-            barrier_fail_kcal=args.barrier_fail_kcal,
-        ), indent=2))
-        return
-    if args.command in {"hg317-qregion-run-umbrella", "hg317-qregion-run-metad", "hg317-qregion-analyze-reproduction", "hg317-qregion-compare-reproduction"}:
-        if not args.reference and args.command in {"hg317-qregion-analyze-reproduction", "hg317-qregion-compare-reproduction"}:
-            raise ValueError("--reference is required for analysis/comparison.")
-        output = Path(args.output or "outputs/hg317_qregion_reproduction")
-        if args.command == "hg317-qregion-analyze-reproduction" or args.command == "hg317-qregion-compare-reproduction":
-            print(json.dumps(analyze_and_compare_reproduction(output, args.reference, args.barrier_warning_kcal, args.barrier_fail_kcal), indent=2))
-            return
-        if not args.config:
-            raise ValueError("--config is required for this reproduction command.")
-        settings = settings_for_mode(args.mode, args.replicas, args.umbrella_steps, args.metad_steps)
-        if args.command == "hg317-qregion-run-umbrella":
-            print(json.dumps(run_qregion_umbrella(args.config, args.reference or "examples/hg317_gxtb_reference_profile.yaml", output / "umbrella", args.platform, settings.umbrella_steps, settings.n_windows, args.skip_existing), indent=2))
+        if args.command == "run-umbrella":
+            run_sample_series(config)
         else:
-            print(json.dumps(run_qregion_metad(args.config, args.reference or "examples/hg317_gxtb_reference_profile.yaml", output / "metad", args.platform, settings.metad_steps, settings.replicas, args.skip_existing), indent=2))
+            run_gap_table_metadynamics(config)
         return
     if not args.config:
         raise ValueError("--config is required for this command.")
-    if args.command == "prepare-hg317-system":
-        print(json.dumps(prepare_hg317_system(args.config, execute=args.execute), indent=2))
-        return
     config = load_config(args.config)
     if args.command == "validate":
         run_validate(config)
@@ -361,46 +300,6 @@ def main() -> None:
     elif args.command == "q-region-gap-table-metad":
         config.evb_representation = "q_region"
         run_gap_table_metadynamics(config)
-    elif args.command == "make-hg317-qregion-candidates":
-        print(json.dumps(make_hg317_qregion_candidates(
-            config,
-            args.config,
-            args.output or str(Path(config.output_dir) / "hg317_qregion_candidates"),
-            include_reaction_atoms=args.include_reaction_atoms,
-        ), indent=2))
-    elif args.command == "q-region-fit-irc":
-        print(json.dumps(q_region_fit_irc(
-            config,
-            args.config,
-            args.output or str(Path(config.output_dir) / "q_region_fit"),
-        ), indent=2))
-    elif args.command == "calibrate-hg317-qregion-gxtb":
-        if not args.reference:
-            raise ValueError("--reference is required for calibrate-hg317-qregion-gxtb.")
-        if not args.candidate_dir:
-            raise ValueError("--candidate-dir is required for calibrate-hg317-qregion-gxtb.")
-        print(json.dumps(calibrate_hg317_qregion_gxtb(
-            config,
-            args.config,
-            args.reference,
-            args.candidate_dir,
-            args.output or str(Path(config.output_dir) / "hg317_qregion_gxtb_calibrated"),
-            args.profile,
-            args.platform,
-        ), indent=2))
-    elif args.command == "hg317-qregion-gxtb-workflow":
-        if not args.reference:
-            raise ValueError("--reference is required for hg317-qregion-gxtb-workflow.")
-        print(json.dumps(hg317_qregion_gxtb_workflow(
-            config,
-            args.config,
-            args.reference,
-            args.output or str(Path(config.output_dir) / "hg317_qregion_gxtb_workflow"),
-            args.profile,
-            args.platform,
-            args.smoke_steps,
-            args.smoke_policy,
-        ), indent=2))
     elif args.command == "evb-gap-opes":
         raise ValueError(
             "Direct OPES on the EVB energy gap is not implemented. PLUMED cannot see the internal OpenMM EVB gap "
@@ -1404,7 +1303,7 @@ def run_derive_q_region(config: EVBConfig, args: argparse.Namespace) -> None:
             payload = yaml.safe_load(handle)
         payload.setdefault("evb", {})["representation"] = "q_region"
         payload["evb"]["q_region"] = asdict(spec)
-        full_config_path = output_dir / "hg317_q_region_config.yaml"
+        full_config_path = output_dir / "q_region_config.yaml"
         with full_config_path.open("w", encoding="utf-8") as handle:
             yaml.safe_dump(payload, handle, sort_keys=False)
     except Exception:
@@ -1565,19 +1464,29 @@ def select_start_positions(config: EVBConfig, state1_positions, state2_positions
     return state1_positions
 
 
-def run_make_template(kind: str) -> None:
+def run_make_template(kind: str, output: str | None = None) -> None:
     from .plumed import PLUMED_TEMPLATES
 
-    template_path = Path("examples") / f"{kind}_template.yaml"
-    if kind == "toy":
+    template_path = Path(output) if output else Path("examples") / f"{kind}_template.yaml"
+    if kind == "toy" and output is None:
         template_path = Path("examples") / "toy_evb.yaml"
     template_path.parent.mkdir(parents=True, exist_ok=True)
     if kind == "toy":
         content = _toy_template()
     elif kind == "solution":
         content = _solution_template()
-    else:
+    elif kind == "enzyme":
         content = _enzyme_template()
+    elif kind == "generic_full_state":
+        content = Path("examples/generic_full_state_template.yaml").read_text(encoding="utf-8")
+    elif kind == "generic_q_region":
+        content = Path("examples/generic_q_region_template.yaml").read_text(encoding="utf-8")
+    elif kind == "generic_q_region_local_pme":
+        content = Path("examples/generic_q_region_local_pme_template.yaml").read_text(encoding="utf-8")
+    elif kind == "generic_with_irc":
+        content = Path("examples/generic_irc_mapping_template.yaml").read_text(encoding="utf-8")
+    else:
+        raise ValueError(f"Unknown template kind: {kind}")
     template_path.write_text(content, encoding="utf-8")
     if kind == "toy":
         from .openmm_backend import write_toy_evb_bundles

@@ -1,41 +1,91 @@
-### (Heavily experimental. Still in development)
-
-
 # OpenMM EVB
 
-Reusable two-state empirical valence bond (EVB) tooling for OpenMM. The validated baseline is the conventional lower EVB surface
+A general two-state empirical valence bond (EVB) package for OpenMM. A user provides two diabatic states, a reference reaction profile or barrier, optional IRC/frame mapping, an EVB representation, and a sampling workflow. The package validates the inputs, calibrates EVB parameters, generates umbrella or native table-metadynamics configs, runs sampling, analyzes PMF/FEL barriers, and compares the result to the reference profile.
+
+The lower EVB surface is
 
 ```text
 E_EVB = 0.5*(E1 + E2 + delta_alpha) - sqrt(0.25*(E1 - E2 - delta_alpha)^2 + H12^2)
 ```
 
-The central observable is the shifted diabatic energy gap:
+The central coordinate is the shifted diabatic gap:
 
 ```text
 gap = E1 - E2 - delta_alpha
 ```
 
-The old `kemp_evb` package and `kemp-evb` command remain as compatibility aliases. New code should prefer `evb` imports and the `evb` CLI.
+## EVB Representations
 
-## Scope
+- `full_state`: exact legacy-style endpoint-state EVB using complete state1/state2 OpenMM systems.
+- `q_region`: Q-region EVB, where common environment terms are evaluated once and only Q-region residual energies are mixed.
 
-Implemented:
+For Q-region nonbonded terms, exact direct-space modes and explicitly approximate local PME modes are separated. Approximate modes are never labelled exact.
 
-- constant-`H12` two-state EVB Hamiltonian in kJ/mol
-- native OpenMM lower-surface EVB system using `CustomCVForce`
-- mapped Hamiltonian windows: `E_map(lambda) = (1-lambda)*E1 + lambda*(E2 + delta_alpha)`
-- native OpenMM gap umbrellas: `0.5*k*(gap-gap0)^2`
-- AMBER `prmtop/inpcrd` and serialized OpenMM `system.xml` plus PDB coordinates
-- state compatibility checks for atom count/order, masses, constraints, virtual sites, and boxes
-- diagnostic histogram PMFs, overlap matrices, barrier summaries, bootstrap/ensemble fitting
-- optional openmm-plumed attachment for geometrical CV biasing
-- Q-region candidate workflows for HG3.17 shared-nonbonded and local-PME Hamiltonians; see `docs/hg317_qregion_candidates.md`
+## Generic Workflow
 
-Not yet validated:
+Create a template:
 
-- geometry-dependent `H12`
-- automatic PLUMED access to the internal OpenMM EVB energy gap
-- production-quality MBAR uncertainty for every workflow
+```bash
+.venv/bin/evb make-template --kind generic_q_region_local_pme --output config.yaml
+```
+
+Validate it:
+
+```bash
+.venv/bin/evb validate-workflow-config --config config.yaml
+```
+
+Generate Q-region candidates:
+
+```bash
+.venv/bin/evb make-qregion-candidates --config config.yaml --output outputs/qregion_candidates
+```
+
+Calibrate to arbitrary reference energies from a frame-energy CSV:
+
+```bash
+.venv/bin/evb calibrate-profile \
+  --reference examples/generic_reference_profile.yaml \
+  --coords frame_energies.csv \
+  --output outputs/profile_calibration
+```
+
+Derive umbrella windows and workflow configs:
+
+```bash
+.venv/bin/evb derive-windows --config config.yaml --output outputs/windows
+.venv/bin/evb run-workflow --config config.yaml --output outputs/workflow --workflow all --mode pilot
+```
+
+Analyze outputs:
+
+```bash
+.venv/bin/evb analyze-umbrella --coords outputs/window_observables.csv --output outputs/umbrella_analysis
+.venv/bin/evb analyze-metad --coords outputs/native_bias/bias_table.csv --profile 15 --output outputs/metad_analysis
+.venv/bin/evb compare-profile --reference examples/generic_reference_profile.yaml --output outputs/comparison
+```
+
+## Reference Profiles
+
+Reference profiles are method-agnostic. Method labels such as `DFT`, `experiment`, `QMMM`, or any user-defined label are metadata, not code paths. Supported energy units include `kJ/mol`, `kcal/mol`, `eV`, and `hartree`. See [`docs/reference_profile_schema.md`](docs/reference_profile_schema.md).
+
+## Native Table WT-MetaD
+
+`evb-gap-table-metad` and generic `run-metad` use native well-tempered metadynamics on the EVB gap with the bias stored as an OpenMM tabulated function inside the EVB force. This avoids OpenMM `app.Metadynamics`/`BiasVariable` duplication. See [`docs/native_table_metadynamics.md`](docs/native_table_metadynamics.md).
+
+## Documentation
+
+- [`docs/generic_evb_workflow.md`](docs/generic_evb_workflow.md)
+- [`docs/reference_profile_schema.md`](docs/reference_profile_schema.md)
+- [`docs/irc_window_generation.md`](docs/irc_window_generation.md)
+- [`docs/q_region_representation.md`](docs/q_region_representation.md)
+- [`docs/umbrella_pmf_analysis.md`](docs/umbrella_pmf_analysis.md)
+- [`docs/native_table_metadynamics.md`](docs/native_table_metadynamics.md)
+- [`docs/migration_from_hg317_prototype.md`](docs/migration_from_hg317_prototype.md)
+
+## Examples
+
+Generic templates live in `examples/generic_*`. The former enzyme-specific research prototype is now an example/tutorial dataset under `examples/hg317/`; package source code does not depend on that system.
 
 ## Install
 
@@ -43,116 +93,8 @@ Not yet validated:
 pip install -e ".[openmm,test]"
 ```
 
-For analysis and PLUMED:
+For optional analysis and PLUMED extras:
 
 ```bash
 pip install -e ".[openmm,analysis,plumed,test]"
 ```
-
-Conda/mamba users can start from:
-
-```bash
-mamba env create -f environment.yml
-mamba activate openmm-evb
-```
-
-## Inputs
-
-Prepare two diabatic states with identical atom layout. The code validates:
-
-- same atom count and atom names/order
-- same particle masses
-- same constraints and virtual-site structure
-- compatible periodic boxes
-
-Supported formats:
-
-- AMBER: `topology: state.prmtop`, `coordinates: state.inpcrd`
-- OpenMM bundle: `format: openmm`, `topology: system.xml`, `coordinates: coordinates.pdb`
-
-All package APIs use kJ/mol, nm, and ps.
-
-## CLI
-
-```bash
-evb validate --config examples/toy_evb.yaml
-evb singlepoint --config examples/toy_evb.yaml
-evb minimize --config examples/toy_evb.yaml
-evb run-md --config examples/toy_evb.yaml
-evb sample-window --config examples/toy_evb.yaml --window w000
-evb sample-series --config examples/toy_evb.yaml
-evb analyze --config examples/toy_evb.yaml
-evb fit --config examples/toy_evb.yaml
-evb plumed-md --config examples/plumed_opes_template.yaml
-evb make-template --kind toy
-```
-
-## Workflows
-
-Fit `delta_alpha` and `H12` from calibration targets with `evb fit` or from explicit reference energies with the legacy bootstrap command. Keep `H12` constant unless you add and test a new coupling API.
-
-### EVB Setup From Cluster-Model IRC
-
-A cluster-model IRC multi-XYZ is treated as geometry/path information only. XYZ comments may contain labels such as `RC`, `TS`, or `PROD`, but the code does not read thermodynamic reference energies from comments. Supply reference free energies separately, usually relative cluster-model values with frequency corrections:
-
-```yaml
-irc:
-  path: inputs/hg317_irc.xyz
-  order: prod_ts_rc   # original file is PROD -> TS -> RC; canonicalized to RC -> TS -> PROD
-  rc_frame: auto      # explicit frame indices are original 0-based indices
-  ts_frame: auto
-  product_frame: auto
-
-reference_profile:
-  units: kcal/mol
-  rc: 0.0
-  ts: 18.5
-  product: 7.2
-  source_label: "CM g-xTB + frequency correction"
-
-analysis:
-  barrier:
-    derive_regions_from_irc: true
-
-sampling:
-  mode: gap_umbrella
-  windows:
-    gap_umbrella:
-      from_irc_scan: true
-      n_windows: 41
-      force_constant_kj_mol2: 0.01
-```
-
-Run the setup before expensive sampling:
-
-```bash
-evb setup-from-irc --config config.yaml --write-window-config
-```
-
-This writes pre-fit and post-fit diabatic scans, fits `delta_alpha` and constant `H12` from canonical RC/TS/PROD frames, reports warnings, and proposes gap umbrella centers/seeds. The final activation free energy must still come from EVB sampling plus WHAM/MBAR-style reconstruction over the energy-gap coordinate with good window overlap. The IRC is not an EVB PMF.
-
-For cluster-model IRCs, enable `irc.relaxation` to generate locally relaxed full-system seeds before fitting/window generation. The setup first minimizes solvent, then the local protein/active-site region with alpha carbons and the far field restrained, then uses that pre-relaxed structure as the base for short IRC-frame minimizations. Set `irc.relaxation.platform: CUDA` with `require_platform: true` for production so these relaxations do not silently run on CPU.
-
-Before using ordinary AMBER endpoint `.prmtop` files for EVB, run `evb prepare-evb-inputs --config config.yaml --output prep/system/evb_ready`. This writes EVB-ready `system.xml` bundles with consistent reactive nonbonded exclusions across states and a derived YAML config that points to them. Refit EVB parameters after this step.
-
-Run conventional sampling first. Mapped windows and gap umbrellas are native OpenMM workflows and do not depend on PLUMED. Analysis writes `analysis/window_overlap.json`, `analysis/pmf_gap.csv`, and `analysis/barrier_estimate.json`. The current histogram mode is diagnostic; treat barriers as trustworthy only after overlap, blocking, and replicate checks.
-
-PLUMED support is optional and currently intended for geometrical CVs such as distances, distance differences, and 2D bond formation/breaking CVs. PLUMED atom indices are 1-based. OpenMM/Python indices are 0-based. Energy-gap OPES is not automatically supported because PLUMED cannot see the internal EVB gap without an explicit bridge.
-
-## Examples
-
-- `examples/toy_evb.yaml`: fast OpenMM-bundle template for tests and development
-- `examples/solution_template.yaml`: solution-reaction skeleton
-- `examples/enzyme_template.yaml`: enzyme-reaction skeleton
-- `examples/plumed_opes_template.yaml`: geometrical OPES template with restart/COLVAR files
-
-Read `docs/validation.md` before trusting any EVB barrier.
-
-Q-region EVB architecture and validation are documented in [`docs/q_region_evb.md`](docs/q_region_evb.md). HG3.17 Q-region PMF/metadynamics reproduction is documented in [`docs/hg317_qregion_reproduction.md`](docs/hg317_qregion_reproduction.md). HG3.17 Q-region calibration to the user-provided g-xTB profile is documented in [`docs/hg317_qregion_gxtb_calibration.md`](docs/hg317_qregion_gxtb_calibration.md), and longer calibrated-candidate stability checks are documented in [`docs/hg317_qregion_stability.md`](docs/hg317_qregion_stability.md).
-
-Native tabulated EVB gap biasing for `evb-gap-table-metad` is documented in [`docs/native_gap_bias.md`](docs/native_gap_bias.md). This path avoids the separate OpenMM `app.Metadynamics`/`BiasVariable` gap-CV evaluation, but it does not remove duplicated full PME in exact decomposed systems.
-
-For the HG3.17 IRC-seeded gap-metadynamics example and 2-GPU launcher, see
-`docs/hg317_reproducibility.md`. Large generated outputs are intentionally not
-tracked in git; regenerate EVB-ready bundles, trajectories, PMFs, and
-visualization pseudo-trajectories locally.

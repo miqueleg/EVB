@@ -139,7 +139,7 @@ def prepare_adiabatic_system_from_irc(
         "setup_from_irc_report": setup_report,
         "warnings": [
             "Adiabatic OpenMM EVB-ready bundles were generated from AMBER endpoint states.",
-            "IRC calibration was rerun against the derived EVB-ready config; use the derived config for HG3.17 benchmarks/sampling.",
+            "IRC calibration was rerun against the derived EVB-ready config; use the derived config for benchmarks/sampling.",
         ],
     }
     report_path = Path(prep_report["output_dir"]) / "adiabatic_system_report.json"

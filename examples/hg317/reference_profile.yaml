@@ -1,0 +1,40 @@
+system: HG3.17
+method: g-xtb
+units:
+  absolute_energy: hartree
+  absolute_kcal_mol: kcal/mol
+  relative_energy: kcal/mol
+relative_reference: Unbound
+states:
+  Unbound:
+    energy_hartree: -5550.032438
+    absolute_kcal_mol: -3482698.080
+    relative_to_unbound_kcal_mol: 0.0
+  Bound:
+    energy_hartree: -5550.088621
+    absolute_kcal_mol: -3482733.336
+    relative_to_unbound_kcal_mol: -35.25514701
+  RC:
+    energy_hartree: -5550.088209
+    absolute_kcal_mol: -3482733.077
+    relative_to_unbound_kcal_mol: -34.99634868
+  TS:
+    energy_hartree: -5550.059301
+    absolute_kcal_mol: -3482714.937
+    relative_to_unbound_kcal_mol: -16.85653486
+  PROD:
+    energy_hartree: -5550.147733
+    absolute_kcal_mol: -3482770.429
+    relative_to_unbound_kcal_mol: -72.34826960
+reaction_profiles:
+  relative_to_RC:
+    RC: 0.0
+    TS: 18.13981382
+    PROD: -37.35192092
+    units: kcal/mol
+  relative_to_Bound:
+    Bound: 0.0
+    TS: 18.39861215
+    PROD: -37.09312259
+    units: kcal/mol
+recommended_calibration_profile: relative_to_RC

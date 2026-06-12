@@ -1,0 +1,63 @@
+project:
+  name: generic-full-state-evb
+  output_dir: outputs/generic_full_state
+states:
+  state1:
+    format: openmm
+    topology: path/to/state1/system.xml
+    coordinates: path/to/state1/coordinates.pdb
+  state2:
+    format: openmm
+    topology: path/to/state2/system.xml
+    coordinates: path/to/state2/coordinates.pdb
+reference_profile:
+  method_label: user_reference
+  energy_unit: kcal/mol
+  zero: reactant
+  points:
+    reactant:
+      relative_energy: 0.0
+    transition_state:
+      relative_energy: 18.14
+    product:
+      relative_energy: -37.35
+  calibration_target:
+    profile: [reactant, transition_state, product]
+    primary_barrier: [reactant, transition_state]
+evb:
+  representation: full_state
+  parameters:
+    delta_alpha_kj_mol: null
+    h12_kj_mol: null
+calibration:
+  mode: profile_fit
+  fit_delta_alpha: true
+  fit_h12: true
+sampling:
+  workflows: [umbrella, metad]
+  temperature_k: 300.0
+  platform: CUDA
+  umbrella:
+    gap_min_kcal_mol: -100.0
+    gap_max_kcal_mol: 100.0
+    windows: 41
+    force_constant_kcal_mol2: 0.005
+    equilibration_steps: 10000
+    production_steps: 200000
+  metad:
+    replicas: 3
+    steps: 1000000
+    bias_factor: 15
+    height_kj_mol: 0.2
+    bias_width_kcal_mol: 180.0
+    frequency: 1000
+    grid_min_kcal_mol: -200.0
+    grid_max_kcal_mol: 200.0
+validation:
+  barrier_warning_kcal_mol: 2.0
+  barrier_fail_kcal_mol: 3.0
+  allow_proxy_analysis: false
+legacy_reference:
+  umbrella_pmf: null
+  metad_fel: null
+  barrier_json: null
