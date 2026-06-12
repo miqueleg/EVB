@@ -48,6 +48,16 @@ from .hg317_gxtb_calibration import (
     validate_hg317_qregion_gxtb,
 )
 from .hg317_stability import run_hg317_qregion_stability_check
+from .hg317_reproduction import (
+    analyze_and_compare_reproduction,
+    generate_reproduction_configs,
+    prepare_selected_candidate_config,
+    run_qregion_metad,
+    run_qregion_umbrella,
+    run_reproduction_workflow,
+    settings_for_mode,
+    write_reproduction_scripts,
+)
 from .observables import compute_named_distances, compute_named_reaction_coordinates, make_gap_sample
 from .openmm_backend import (
     AmberSystemLoader,
@@ -118,6 +128,11 @@ def main() -> None:
             "smoke-hg317-qregion-gxtb",
             "hg317-qregion-gxtb-workflow",
             "hg317-qregion-stability-check",
+            "hg317-qregion-reproduce",
+            "hg317-qregion-run-umbrella",
+            "hg317-qregion-run-metad",
+            "hg317-qregion-analyze-reproduction",
+            "hg317-qregion-compare-reproduction",
             "evb-gap-opes",
             "make-template",
         ],
@@ -159,6 +174,16 @@ def main() -> None:
     parser.add_argument("--table-metad-steps", type=int, default=100000, help="Native table-metad Q-region MD steps for HG3.17 stability checks")
     parser.add_argument("--quick", action="store_true", help="Use 10000-step quick stability checks")
     parser.add_argument("--stability-report-interval", type=int, help="Report interval for HG3.17 stability observables")
+    parser.add_argument("--mode", choices=["quick", "pilot", "production"], default="quick", help="HG3.17 reproduction mode")
+    parser.add_argument("--workflow", choices=["umbrella", "metad", "all", "analysis-only"], default="all", help="HG3.17 reproduction workflow")
+    parser.add_argument("--replicas", type=int, help="Number of metadynamics replicas")
+    parser.add_argument("--umbrella-steps", type=int, help="Umbrella production steps per quick/proxy window")
+    parser.add_argument("--metad-steps", type=int, help="Metadynamics steps per replica")
+    parser.add_argument("--write-run-scripts-only", action="store_true", help="Only generate reproduction configs and shell scripts")
+    parser.add_argument("--resume", action="store_true", help="Resume HG3.17 reproduction workflow where supported")
+    parser.add_argument("--skip-existing", action="store_true", help="Skip existing HG3.17 reproduction outputs")
+    parser.add_argument("--barrier-warning-kcal", type=float, default=2.0, help="Barrier warning threshold versus reference in kcal/mol")
+    parser.add_argument("--barrier-fail-kcal", type=float, default=3.0, help="Barrier failure threshold versus reference in kcal/mol")
     args = parser.parse_args()
 
     if args.command == "make-template":
@@ -227,6 +252,45 @@ def main() -> None:
             quick=args.quick,
             report_interval=args.stability_report_interval,
         ), indent=2))
+        return
+    if args.command == "hg317-qregion-reproduce":
+        if not args.config:
+            raise ValueError("--config is required for hg317-qregion-reproduce.")
+        if not args.reference:
+            raise ValueError("--reference is required for hg317-qregion-reproduce.")
+        config = load_config(args.config)
+        print(json.dumps(run_reproduction_workflow(
+            config,
+            args.config,
+            args.reference,
+            args.output or str(Path("outputs") / "hg317_qregion_reproduction"),
+            platform=args.platform,
+            mode=args.mode,
+            workflow=args.workflow,
+            replicas=args.replicas,
+            umbrella_steps=args.umbrella_steps,
+            metad_steps=args.metad_steps,
+            write_run_scripts_only=args.write_run_scripts_only,
+            resume=args.resume,
+            skip_existing=args.skip_existing,
+            barrier_warning_kcal=args.barrier_warning_kcal,
+            barrier_fail_kcal=args.barrier_fail_kcal,
+        ), indent=2))
+        return
+    if args.command in {"hg317-qregion-run-umbrella", "hg317-qregion-run-metad", "hg317-qregion-analyze-reproduction", "hg317-qregion-compare-reproduction"}:
+        if not args.reference and args.command in {"hg317-qregion-analyze-reproduction", "hg317-qregion-compare-reproduction"}:
+            raise ValueError("--reference is required for analysis/comparison.")
+        output = Path(args.output or "outputs/hg317_qregion_reproduction")
+        if args.command == "hg317-qregion-analyze-reproduction" or args.command == "hg317-qregion-compare-reproduction":
+            print(json.dumps(analyze_and_compare_reproduction(output, args.reference, args.barrier_warning_kcal, args.barrier_fail_kcal), indent=2))
+            return
+        if not args.config:
+            raise ValueError("--config is required for this reproduction command.")
+        settings = settings_for_mode(args.mode, args.replicas, args.umbrella_steps, args.metad_steps)
+        if args.command == "hg317-qregion-run-umbrella":
+            print(json.dumps(run_qregion_umbrella(args.config, args.reference or "examples/hg317_gxtb_reference_profile.yaml", output / "umbrella", args.platform, settings.umbrella_steps, settings.n_windows, args.skip_existing), indent=2))
+        else:
+            print(json.dumps(run_qregion_metad(args.config, args.reference or "examples/hg317_gxtb_reference_profile.yaml", output / "metad", args.platform, settings.metad_steps, settings.replicas, args.skip_existing), indent=2))
         return
     if not args.config:
         raise ValueError("--config is required for this command.")
