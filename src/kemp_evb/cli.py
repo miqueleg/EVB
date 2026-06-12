@@ -35,6 +35,12 @@ from .q_region import (
 from .irc import read_irc_xyz, write_irc_outputs
 from .irc_setup import setup_from_irc
 from .hg317_prep import prepare_hg317_system
+from .hg317_qregion import (
+    make_hg317_qregion_candidates,
+    q_region_fit_irc,
+    run_hg317_qregion_smoke,
+    validate_hg317_qregion_candidates,
+)
 from .observables import compute_named_distances, compute_named_reaction_coordinates, make_gap_sample
 from .openmm_backend import (
     AmberSystemLoader,
@@ -96,6 +102,10 @@ def main() -> None:
             "derive-q-region",
             "q-region-singlepoint",
             "q-region-gap-table-metad",
+            "make-hg317-qregion-candidates",
+            "q-region-fit-irc",
+            "validate-hg317-qregion-candidates",
+            "run-best-hg317-qregion-smoke",
             "evb-gap-opes",
             "make-template",
         ],
@@ -124,6 +134,11 @@ def main() -> None:
     parser.add_argument("--kind", choices=["solution", "enzyme", "toy"], help="Template kind for make-template")
     parser.add_argument("--q-atom", action="append", type=int, default=[], help="0-based OpenMM atom index for Q-region derivation")
     parser.add_argument("--include-reaction-atoms", action="store_true", help="Include reaction/substrate atoms in derived Q-region proposal")
+    parser.add_argument("--candidate-dir", help="Candidate directory for HG3.17 Q-region validation workflows")
+    parser.add_argument("--platform", help="OpenMM platform override for candidate validation/smoke workflows")
+    parser.add_argument("--run-smoke", action="store_true", help="Run smoke benchmark for selected HG3.17 Q-region candidate")
+    parser.add_argument("--force-smoke", action="store_true", help="Run smoke benchmark even if validation thresholds fail")
+    parser.add_argument("--smoke-steps", type=int, default=2000, help="Number of MD steps for HG3.17 Q-region smoke benchmark")
     args = parser.parse_args()
 
     if args.command == "make-template":
@@ -133,6 +148,29 @@ def main() -> None:
         if not args.irc:
             raise ValueError("--irc is required for irc-analyze.")
         run_irc_analyze(args.irc, args.output)
+        return
+    if args.command == "validate-hg317-qregion-candidates":
+        if not args.candidate_dir:
+            raise ValueError("--candidate-dir is required for validate-hg317-qregion-candidates.")
+        print(json.dumps(validate_hg317_qregion_candidates(
+            args.candidate_dir,
+            args.output or str(Path(args.candidate_dir) / "validation"),
+            args.platform,
+            run_smoke=args.run_smoke,
+            smoke_steps=args.smoke_steps,
+            force_smoke=args.force_smoke,
+        ), indent=2))
+        return
+    if args.command == "run-best-hg317-qregion-smoke":
+        if not args.config:
+            raise ValueError("--config is required for run-best-hg317-qregion-smoke.")
+        print(json.dumps(run_hg317_qregion_smoke(
+            args.config,
+            args.output or str(Path("outputs") / "hg317_qregion_smoke"),
+            args.platform,
+            args.smoke_steps,
+            forced=args.force_smoke,
+        ), indent=2))
         return
     if not args.config:
         raise ValueError("--config is required for this command.")
@@ -203,6 +241,19 @@ def main() -> None:
     elif args.command == "q-region-gap-table-metad":
         config.evb_representation = "q_region"
         run_gap_table_metadynamics(config)
+    elif args.command == "make-hg317-qregion-candidates":
+        print(json.dumps(make_hg317_qregion_candidates(
+            config,
+            args.config,
+            args.output or str(Path(config.output_dir) / "hg317_qregion_candidates"),
+            include_reaction_atoms=args.include_reaction_atoms,
+        ), indent=2))
+    elif args.command == "q-region-fit-irc":
+        print(json.dumps(q_region_fit_irc(
+            config,
+            args.config,
+            args.output or str(Path(config.output_dir) / "q_region_fit"),
+        ), indent=2))
     elif args.command == "evb-gap-opes":
         raise ValueError(
             "Direct OPES on the EVB energy gap is not implemented. PLUMED cannot see the internal OpenMM EVB gap "

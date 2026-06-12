@@ -202,6 +202,10 @@ class QRegionSystemBuilder:
         exactness_status = "exact"
         common_nb_count = 0
         q_nb_count = 0
+        nonbonded_model_changed = False
+        legacy_equivalence = "true"
+        correction_atom_report: dict[str, Any] = {}
+        self._positions_nm = baseline.positions_nm
 
         for force_index in range(baseline.system.getNumForces()):
             force1 = state1.system.getForce(force_index)
@@ -222,6 +226,10 @@ class QRegionSystemBuilder:
                 exactness_status = result["exactness_status"]
                 common_nb_count += result["common_nonbonded_count"]
                 q_nb_count += result["q_nonbonded_count"]
+                nonbonded_model_changed = nonbonded_model_changed or bool(result.get("nonbonded_model_changed", False))
+                legacy_equivalence = result.get("legacy_equivalence", legacy_equivalence)
+                if result.get("correction_atom_report"):
+                    correction_atom_report = result["correction_atom_report"]
                 continue
             if _is_supported_bonded_force(force1):
                 common, s1, s2, changed, summary = self._split_bonded_force(force1, force2, force_index)
@@ -283,6 +291,7 @@ class QRegionSystemBuilder:
                 "full_duplicated_nonbonded": False,
                 "bonded_mapping": _summarize_bonded_mappings(bonded_mapping_summaries),
                 "constraints": constraint_report,
+                "correction_atoms": correction_atom_report,
             },
             q_state_force_summary={
                 "state1_force_count": len(state1_residuals),
@@ -301,6 +310,8 @@ class QRegionSystemBuilder:
         report_dict["duplicated_full_nonbonded"] = False
         report_dict["pme_approximation"] = exactness_status == "approximate"
         report_dict["reciprocal_pme_difference_ignored_or_approximated"] = exactness_status == "approximate"
+        report_dict["nonbonded_model_changed"] = bool(nonbonded_model_changed)
+        report_dict["legacy_equivalence"] = legacy_equivalence
         return QRegionEVBSystem(
             system=system,
             topology=baseline.topology,
@@ -347,42 +358,110 @@ class QRegionSystemBuilder:
                 "exactness_status": "exact",
                 "common_nonbonded_count": 1,
                 "q_nonbonded_count": 0,
+                "legacy_equivalence": "true",
+                "nonbonded_model_changed": False,
+                "correction_atom_report": {},
             }
         method = determine_nonbonded_method(force1)
+        mode = self.spec.nonbonded.mode
         changed_atoms = set(find_changed_nonbonded_particles(force1, force2))
         changed_exceptions = find_changed_exceptions(force1, force2)
+        baseline_force = force1 if self.spec.baseline_state == "state1" else force2
+        baseline = _clone_openmm_object(baseline_force)
+
         if method in {"PME", "Ewald", "LJPME"}:
-            if not self.spec.nonbonded.local_approx_enabled:
+            if mode == "shared_nonbonded_model":
+                return {
+                    "common": [baseline],
+                    "state1": [],
+                    "state2": [],
+                    "changed_atoms": changed_atoms,
+                    "changed_exceptions": changed_exceptions,
+                    "warnings": [
+                        "shared_nonbonded_model collapses state-specific PME parameters into one baseline; exact for the modified Hamiltonian, not legacy-equivalent."
+                    ],
+                    "pme_status": "shared_nonbonded_model",
+                    "exactness_status": "exact_for_shared_nonbonded_model",
+                    "common_nonbonded_count": 1,
+                    "q_nonbonded_count": 0,
+                    "legacy_equivalence": "false",
+                    "nonbonded_model_changed": True,
+                    "correction_atom_report": {
+                        "n_q_atoms": len(self.q_atoms),
+                        "n_changed_atoms": len(changed_atoms),
+                        "n_shell_atoms": 0,
+                        "n_correction_atoms": 0,
+                        "policy": "none",
+                    },
+                }
+            if mode != "local_pme_approx" and not self.spec.nonbonded.local_approx_enabled:
                 raise ValueError(
-                    "Q-region exact PME decomposition is not implemented; use full-state exact mode or explicitly enable local_pme_approx with validation."
+                    "Q-region exact PME decomposition is not implemented; use full-state exact mode, "
+                    "shared_nonbonded_model, or explicitly enable local_pme_approx with validation."
                 )
-            baseline = _clone_openmm_object(force1 if self.spec.baseline_state == "state1" else force2)
-            correction = _build_direct_nonbonded_correction(force1, force2, changed_atoms or set(self.q_atoms), self.spec.correction_atoms, approximate=True)
+            correction_atoms, correction_report = _select_correction_atoms(
+                self.spec.correction_atoms or self.spec.nonbonded.correction_atoms,
+                self.q_atoms,
+                changed_atoms,
+                getattr(self, "_positions_nm", None),
+                float(self.spec.nonbonded.correction_cutoff_nm),
+                force1.getNumParticles(),
+            )
+            correction = _build_direct_nonbonded_correction(
+                force1,
+                force2,
+                changed_atoms or set(self.q_atoms),
+                correction_atoms,
+                baseline_state=self.spec.baseline_state,
+                method="CutoffPeriodic" if method in {"PME", "Ewald", "LJPME", "CutoffPeriodic"} else "CutoffNonPeriodic",
+                cutoff_nm=float(self.spec.nonbonded.correction_cutoff_nm),
+                include_exceptions=bool(self.spec.nonbonded.include_exceptions),
+            )
             warnings = [
                 "local_pme_approx is enabled: reciprocal PME differences are ignored or approximated by local direct-space corrections."
             ]
+            s1 = [] if correction["state1"] is None else [correction["state1"]]
+            s2 = [] if correction["state2"] is None else [correction["state2"]]
             return {
                 "common": [baseline],
-                "state1": [] if self.spec.baseline_state == "state1" else [correction["state1"]],
-                "state2": [correction["state2"]] if self.spec.baseline_state == "state1" else [],
+                "state1": s1,
+                "state2": s2,
                 "changed_atoms": changed_atoms,
                 "changed_exceptions": changed_exceptions,
                 "warnings": warnings,
                 "pme_status": "local_pme_approx",
                 "exactness_status": "approximate",
                 "common_nonbonded_count": 1,
-                "q_nonbonded_count": 1,
+                "q_nonbonded_count": len(s1) + len(s2),
+                "legacy_equivalence": "approximate_only",
+                "nonbonded_model_changed": False,
+                "correction_atom_report": correction_report,
             }
         if method not in {"NoCutoff", "CutoffNonPeriodic", "CutoffPeriodic"}:
             raise ValueError(f"Q-region exact direct nonbonded does not support method {method}.")
-        baseline = _clone_openmm_object(force1 if self.spec.baseline_state == "state1" else force2)
-        correction = _build_direct_nonbonded_correction(force1, force2, changed_atoms or set(self.q_atoms), self.spec.correction_atoms, approximate=False)
-        if self.spec.baseline_state == "state1":
-            s1 = []
-            s2 = [correction["state2"]]
-        else:
-            s1 = [correction["state1"]]
-            s2 = []
+        correction_atoms, correction_report = _select_correction_atoms(
+            self.spec.correction_atoms or self.spec.nonbonded.correction_atoms,
+            self.q_atoms,
+            changed_atoms,
+            getattr(self, "_positions_nm", None),
+            float(self.spec.nonbonded.correction_cutoff_nm),
+            force1.getNumParticles(),
+        )
+        if not correction_atoms:
+            correction_atoms = self.spec.correction_atoms or list(range(force1.getNumParticles()))
+            correction_report["n_correction_atoms"] = len(correction_atoms)
+        correction = _build_direct_nonbonded_correction(
+            force1,
+            force2,
+            changed_atoms or set(self.q_atoms),
+            correction_atoms,
+            baseline_state=self.spec.baseline_state,
+            method=method,
+            cutoff_nm=float(self.spec.nonbonded.correction_cutoff_nm),
+            include_exceptions=bool(self.spec.nonbonded.include_exceptions),
+        )
+        s1 = [] if correction["state1"] is None else [correction["state1"]]
+        s2 = [] if correction["state2"] is None else [correction["state2"]]
         return {
             "common": [baseline],
             "state1": s1,
@@ -394,8 +473,10 @@ class QRegionSystemBuilder:
             "exactness_status": "exact",
             "common_nonbonded_count": 1,
             "q_nonbonded_count": len(s1) + len(s2),
+            "legacy_equivalence": "true",
+            "nonbonded_model_changed": False,
+            "correction_atom_report": correction_report,
         }
-
 
 
 def _constraint_signature(system: Any, index: int) -> tuple[tuple[int, int], float]:
@@ -529,6 +610,7 @@ def partition_bonded_terms(
     changed: list[dict[str, Any]] = []
     unmatched: list[dict[str, Any]] = []
     warnings: list[str] = []
+    common_count = 0
 
     by_full2: dict[tuple[Any, ...], list[int]] = {}
     for index, record in enumerate(terms2):
@@ -541,7 +623,7 @@ def partition_bonded_terms(
         _add_term(common, kind, record1["term"])
         used1.add(i)
         used2.add(match)
-        changed.append(_mapping_row("common", kind, force_index, record1, terms2[match]))
+        common_count += 1
 
     remaining1 = [i for i in range(len(terms1)) if i not in used1]
     remaining2 = [i for i in range(len(terms2)) if i not in used2]
@@ -591,7 +673,7 @@ def partition_bonded_terms(
         "force_index": force_index,
         "n_terms_state1": len(terms1),
         "n_terms_state2": len(terms2),
-        "n_common_terms": sum(1 for row in changed if row["mapping"] == "common"),
+        "n_common_terms": common_count,
         "n_state1_only_terms": sum(1 for row in changed if row["mapping"] == "state1_only"),
         "n_state2_only_terms": sum(1 for row in changed if row["mapping"] == "state2_only"),
         "n_changed_parameter_terms": sum(1 for row in changed if row["mapping"] == "changed_parameter"),
@@ -859,44 +941,176 @@ def write_q_region_config_fragment(spec: QRegionSpec, path: str | Path) -> None:
     path.write_text(_simple_yaml(payload), encoding="utf-8")
 
 
-def _build_direct_nonbonded_correction(force1: Any, force2: Any, changed_atoms: set[int], correction_atoms: list[int], approximate: bool) -> dict[str, Any]:
-    del approximate
-    all_atoms = set(range(force1.getNumParticles()))
-    interaction_atoms = set(correction_atoms or []) or all_atoms
-    interaction_atoms.update(changed_atoms)
+def _select_correction_atoms(
+    policy: list[int] | str | None,
+    q_atoms: list[int],
+    changed_atoms: set[int],
+    positions_nm: np.ndarray | None,
+    cutoff_nm: float,
+    atom_count: int,
+) -> tuple[list[int], dict[str, Any]]:
+    q_set = set(int(atom) for atom in q_atoms)
+    changed_set = set(int(atom) for atom in changed_atoms)
+    shell: set[int] = set()
+    if isinstance(policy, list):
+        selected = set(int(atom) for atom in policy)
+        label = "explicit"
+    else:
+        label = policy or "auto"
+        if label == "auto":
+            selected = q_set | changed_set
+        elif label == "q_atoms":
+            selected = set(q_set)
+        elif label == "changed_atoms":
+            selected = set(changed_set)
+        elif label == "all_atoms":
+            selected = set(range(atom_count))
+        elif label == "q_plus_shell":
+            selected = q_set | changed_set
+            if positions_nm is not None and len(q_set) > 0:
+                positions = np.asarray(positions_nm, dtype=float)
+                q_positions = positions[sorted(q_set)]
+                for atom, xyz in enumerate(positions):
+                    distances = np.linalg.norm(q_positions - xyz, axis=1)
+                    if bool(np.any(distances <= cutoff_nm)):
+                        shell.add(atom)
+                selected.update(shell)
+        else:
+            raise ValueError(f"Unsupported q_region.nonbonded.correction_atoms policy {policy!r}.")
+    selected = {atom for atom in selected if 0 <= atom < atom_count}
+    return sorted(selected), {
+        "policy": label,
+        "n_q_atoms": len(q_set),
+        "n_changed_atoms": len(changed_set),
+        "n_shell_atoms": len(shell),
+        "n_correction_atoms": len(selected),
+        "q_atoms": sorted(q_set),
+        "changed_atoms": sorted(changed_set),
+    }
 
-    def make_force(state_force: Any, baseline_force: Any, name: str):
-        expr = f"{_COULOMB}*(q_state1*q_state2-q_base1*q_base2)/r + 4*(epsilon_state-sqrt(epsilon_base1*epsilon_base2))*((sigma_state/r)^12-(sigma_state/r)^6); sigma_state=0.5*(sigma_state1+sigma_state2); epsilon_state=sqrt(epsilon_state1*epsilon_state2)"
+
+def _particle_params(force: Any, index: int) -> tuple[float, float, float]:
+    q, sigma, epsilon = force.getParticleParameters(index)
+    return (
+        float(q.value_in_unit(unit.elementary_charge)),
+        float(sigma.value_in_unit(unit.nanometer)),
+        float(epsilon.value_in_unit(unit.kilojoule_per_mole)),
+    )
+
+
+def _exception_params(force: Any) -> dict[tuple[int, int], tuple[float, float, float]]:
+    params = {}
+    for i in range(force.getNumExceptions()):
+        a, b, chargeprod, sigma, epsilon = force.getExceptionParameters(i)
+        params[tuple(sorted((int(a), int(b))))] = (
+            float(chargeprod.value_in_unit(unit.elementary_charge**2)),
+            float(sigma.value_in_unit(unit.nanometer)),
+            float(epsilon.value_in_unit(unit.kilojoule_per_mole)),
+        )
+    return params
+
+
+def _zero_force() -> Any:
+    return openmm.CustomCVForce("0")
+
+
+def _combine_forces(forces: list[Any], prefix: str) -> Any | None:
+    nonzero = [force for force in forces if force is not None]
+    if not nonzero:
+        return None
+    if len(nonzero) == 1:
+        return nonzero[0]
+    cv = openmm.CustomCVForce(" + ".join(f"f{i}" for i in range(len(nonzero))))
+    for i, force in enumerate(nonzero):
+        _rename_force_global_parameters(force, f"{prefix}_{i}")
+        cv.addCollectiveVariable(f"f{i}", force)
+    return cv
+
+
+def _build_direct_nonbonded_correction(
+    force1: Any,
+    force2: Any,
+    changed_atoms: set[int],
+    correction_atoms: list[int],
+    *,
+    baseline_state: str,
+    method: str,
+    cutoff_nm: float,
+    include_exceptions: bool,
+) -> dict[str, Any]:
+    changed_atoms = set(int(atom) for atom in changed_atoms)
+    interaction_atoms = set(int(atom) for atom in correction_atoms or [])
+    interaction_atoms.update(changed_atoms)
+    if not changed_atoms:
+        return {"state1": None, "state2": None}
+    baseline_force = force1 if baseline_state == "state1" else force2
+    exception_keys = set(_exception_params(baseline_force))
+
+    def make_pair_force(state_force: Any, baseline_force: Any, name: str):
+        expr = (
+            f"{_COULOMB}*(q_state1*q_state2-q_base1*q_base2)/r"
+            " + 4*epsilon_state*((sigma_state/r)^12-(sigma_state/r)^6)"
+            " - 4*epsilon_base*((sigma_base/r)^12-(sigma_base/r)^6);"
+            " sigma_state=0.5*(sigma_state1+sigma_state2);"
+            " epsilon_state=sqrt(epsilon_state1*epsilon_state2);"
+            " sigma_base=0.5*(sigma_base1+sigma_base2);"
+            " epsilon_base=sqrt(epsilon_base1*epsilon_base2)"
+        )
         cf = openmm.CustomNonbondedForce(expr)
         for param in ("q_state", "sigma_state", "epsilon_state", "q_base", "sigma_base", "epsilon_base"):
             cf.addPerParticleParameter(param)
-        cf.setNonbondedMethod(openmm.CustomNonbondedForce.NoCutoff)
+        if method == "NoCutoff":
+            cf.setNonbondedMethod(openmm.CustomNonbondedForce.NoCutoff)
+        elif method == "CutoffPeriodic":
+            cf.setNonbondedMethod(openmm.CustomNonbondedForce.CutoffPeriodic)
+            cf.setCutoffDistance(cutoff_nm * unit.nanometer)
+        else:
+            cf.setNonbondedMethod(openmm.CustomNonbondedForce.CutoffNonPeriodic)
+            cf.setCutoffDistance(cutoff_nm * unit.nanometer)
         for i in range(state_force.getNumParticles()):
-            qs, ss, es = state_force.getParticleParameters(i)
-            qb, sb, eb = baseline_force.getParticleParameters(i)
-            cf.addParticle([
-                qs.value_in_unit(unit.elementary_charge),
-                ss.value_in_unit(unit.nanometer),
-                es.value_in_unit(unit.kilojoule_per_mole),
-                qb.value_in_unit(unit.elementary_charge),
-                sb.value_in_unit(unit.nanometer),
-                eb.value_in_unit(unit.kilojoule_per_mole),
-            ])
-        for i in range(state_force.getNumExceptions()):
-            a, b, *_ = state_force.getExceptionParameters(i)
-            cf.addExclusion(int(a), int(b))
+            qs, ss, es = _particle_params(state_force, i)
+            qb, sb, eb = _particle_params(baseline_force, i)
+            cf.addParticle([qs, ss, es, qb, sb, eb])
+        for a, b in exception_keys:
+            cf.addExclusion(a, b)
         cf.addInteractionGroup(sorted(changed_atoms), sorted(interaction_atoms))
         _rename_force_global_parameters(cf, name)
         return cf
 
-    if not changed_atoms:
-        return {"state1": openmm.CustomCVForce("0"), "state2": openmm.CustomCVForce("0")}
-    if True:
-        baseline = force1
-        return {
-            "state1": openmm.CustomCVForce("0"),
-            "state2": make_force(force2, baseline, "q_nb_s2"),
-        }
+    def make_exception_force(state_force: Any, baseline_force: Any, name: str):
+        state_exceptions = _exception_params(state_force)
+        base_exceptions = _exception_params(baseline_force)
+        keys = sorted(set(state_exceptions) | set(base_exceptions))
+        changed = [key for key in keys if state_exceptions.get(key) != base_exceptions.get(key)]
+        if not include_exceptions or not changed:
+            return None
+        expr = (
+            f"{_COULOMB}*(chargeprod_state-chargeprod_base)/r"
+            " + 4*epsilon_state*((sigma_state/r)^12-(sigma_state/r)^6)"
+            " - 4*epsilon_base*((sigma_base/r)^12-(sigma_base/r)^6)"
+        )
+        cb = openmm.CustomBondForce(expr)
+        for param in ("chargeprod_state", "sigma_state", "epsilon_state", "chargeprod_base", "sigma_base", "epsilon_base"):
+            cb.addPerBondParameter(param)
+        for a, b in changed:
+            state_values = state_exceptions.get((a, b), (0.0, 1.0, 0.0))
+            base_values = base_exceptions.get((a, b), (0.0, 1.0, 0.0))
+            cb.addBond(a, b, [*state_values, *base_values])
+        _rename_force_global_parameters(cb, name)
+        return cb
+
+    state1_forces = []
+    state2_forces = []
+    if baseline_state != "state1":
+        state1_forces.append(make_pair_force(force1, baseline_force, "q_nb_s1_pair"))
+        state1_forces.append(make_exception_force(force1, baseline_force, "q_nb_s1_exception"))
+    if baseline_state != "state2":
+        state2_forces.append(make_pair_force(force2, baseline_force, "q_nb_s2_pair"))
+        state2_forces.append(make_exception_force(force2, baseline_force, "q_nb_s2_exception"))
+    return {
+        "state1": _combine_forces(state1_forces, "q_nb_s1") or None,
+        "state2": _combine_forces(state2_forces, "q_nb_s2") or None,
+    }
 
 
 def _aggregate_residual_forces(forces: list[Any], prefix: str) -> Any:

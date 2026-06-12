@@ -29,6 +29,7 @@ Implemented:
 - state compatibility checks for atom count/order, masses, constraints, virtual sites, and boxes
 - diagnostic histogram PMFs, overlap matrices, barrier summaries, bootstrap/ensemble fitting
 - optional openmm-plumed attachment for geometrical CV biasing
+- Q-region candidate workflows for HG3.17 shared-nonbonded and local-PME Hamiltonians; see `docs/hg317_qregion_candidates.md`
 
 Not yet validated:
 
